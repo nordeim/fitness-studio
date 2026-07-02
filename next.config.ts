@@ -1,34 +1,30 @@
 import type { NextConfig } from 'next';
 
 /**
- * Content-Security-Policy for StoryIntoVideo.
+ * IRONFORGE — Next.js 16 production configuration.
  *
- * Directives:
+ * Content-Security-Policy directives:
  *   - default-src 'self'                 — deny everything not explicitly allowed
- *   - script-src 'self' 'unsafe-inline'  — Next.js inline runtime scripts require 'unsafe-inline'
- *                                           (a future hardening pass can switch to nonce-based)
+ *   - script-src 'self' 'unsafe-inline'  — Next.js App Router inline runtime (nonce-based is future hardening)
  *   - style-src 'self' 'unsafe-inline'   — Tailwind v4 + Next.js inject inline styles
- *   - img-src 'self' data: https:        — self-hosted examples + og:image + R2 signed URLs (https)
- *   - font-src 'self'                    — self-hosted Geist + Outfit (no CDN)
- *   - connect-src 'self'                 — all AI calls are server-side; browser only talks to origin
- *   - media-src 'self'                   — workflow showcase MP4s are self-hosted
- *   - frame-ancestors 'none'             — equivalent to X-Frame-Options: DENY (clickjacking)
+ *   - img-src 'self' data: https:        — self-hosted assets + og:image + R2 signed URLs
+ *   - font-src 'self'                    — self-hosted Bebas Neue / Oswald / Archivo / JetBrains Mono
+ *   - connect-src 'self' https://api.stripe.com https://js.stripe.com  — Stripe client SDK
+ *   - media-src 'self'                   — self-hosted MP4 reels (Phase 3+)
+ *   - frame-ancestors 'none'             — clickjacking defense (X-Frame-Options: DENY equivalent)
  *   - base-uri 'self'                    — prevent <base> injection
  *   - form-action 'self'                 — forms may only submit to origin
  *   - object-src 'none'                  — no Flash/Java/plugins
  *
- * Note: 'unsafe-inline' is required for Next.js App Router (inline <script> chunks
- * for the router state). A nonce-based CSP is the production-hardened alternative
- * but requires per-request nonce generation via Next.js 16's built-in support —
- * deferred to a future hardening sprint.
+ * 'unsafe-eval' is intentionally absent — not required for Next.js 16 production builds.
  */
 const CSP_POLICY = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
   "font-src 'self'",
-  "connect-src 'self'",
+  "connect-src 'self' https://api.stripe.com https://js.stripe.com",
   "media-src 'self'",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -39,10 +35,18 @@ const CSP_POLICY = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  allowedDevOrigins: ['fitness-studio.jesspete.shop', '192.168.2.132'],
+  allowedDevOrigins: ['ironforge.local', 'localhost', '127.0.0.1'],
   images: {
     formats: ['image/avif', 'image/webp'],
+    remotePatterns: [
+      // R2 signed URLs (Phase 8 AI asset generation)
+      { protocol: 'https', hostname: '*.r2.cloudflarestorage.com' },
+      // Replicate delivery URLs (if used directly — normally proxied via R2)
+      { protocol: 'https', hostname: 'replicate.delivery' },
+    ],
   },
+  // External packages that should not be bundled (Next.js 16: top-level key)
+  serverExternalPackages: ['bcryptjs', 'stripe', 'replicate', 'inngest'],
   async headers() {
     return [
       {
@@ -55,13 +59,9 @@ const nextConfig: NextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
           },
-          // NF-2: Content-Security-Policy — browser-level XSS mitigation.
-          // Without this, an injected inline script (compromised dependency,
-          // stored XSS in user content) executes freely.
+          // CSP — browser-level XSS mitigation (OWASP A03 + A05)
           { key: 'Content-Security-Policy', value: CSP_POLICY },
-          // NF-2: Strict-Transport-Security — origin-level HSTS (defense-in-depth
-          // behind Cloudflare's edge HSTS). max-age=63072000 (2 years) is the
-          // OWASP-recommended minimum for preload-list eligibility.
+          // HSTS — origin-level (2 years, includeSubDomains, preload-eligible)
           {
             key: 'Strict-Transport-Security',
             value: 'max-age=63072000; includeSubDomains; preload',

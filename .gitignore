@@ -37,8 +37,8 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# ── Env files ──
-#.env*
+# ── Env files (HIGH: never commit secrets) ──
+.env*
 !.env.example
 
 # ── Vercel ──

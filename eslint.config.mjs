@@ -52,7 +52,43 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': 'error',
       'react/no-unescaped-entities': 'off',
-      'react-hooks/exhaustive-deps': 'warn',
+      // Strict: exhaustive-deps must be error, not warning (matches no-explicit-any: error)
+      'react-hooks/exhaustive-deps': 'error',
+    },
+  },
+  // 5-layer architecture enforcement (Skills KB §9)
+  // Domain layer (src/features/*/domain/**) must not import runtime Next.js / DB / React
+  // allowTypeImports: true — `import type { X } from '@/lib/db/schema'` is OK
+  {
+    files: ['src/features/*/domain/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                'next',
+                'next/*',
+                'react',
+                'react-dom',
+                'drizzle-orm',
+                'drizzle-orm/*',
+                'postgres',
+                '@auth/*',
+                'inngest',
+                'stripe',
+                'replicate',
+                '@upstash/*',
+                '@aws-sdk/*',
+              ],
+              message:
+                'Domain layer must be pure — no Next.js / React / DB / infra runtime imports. Use `import type` for types only.',
+              allowTypeImports: true,
+            },
+          ],
+        },
+      ],
     },
   },
 );

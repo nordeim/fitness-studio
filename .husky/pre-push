@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# Husky pre-push hook — runs unit tests + typecheck before push
+pnpm typecheck && pnpm test

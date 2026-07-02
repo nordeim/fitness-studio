@@ -1,0 +1,20 @@
+# pnpm workspace config — single-package repo.
+# T0 lesson: pnpm 9+ requires the `packages:` field even for single-package
+# repos when this file exists. Without it, `pnpm install` fails with
+# ERR_PNPM_INVALID_WORKSPACE_CONFIGURATION  packages field missing or empty.
+packages:
+  - '.'
+
+# Allow specific native build scripts to run during install (pnpm 9 default
+# is to skip them unless explicitly approved).
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+
+# Only run postinstall scripts for these packages (security hardening —
+# prevents malicious packages from running arbitrary code on install).
+onlyBuiltDependencies:
+  - sharp
+  - unrs-resolver
+  - esbuild

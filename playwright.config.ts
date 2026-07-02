@@ -1,14 +1,15 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright E2E test configuration.
- * Targets Chromium only (cross-browser visual QA is manual per PRD §13.5).
+ * IRONFORGE — Playwright E2E config.
+ *
+ * Chromium only (cross-browser visual QA is manual per PRD §13.5).
  * Auto-starts `pnpm dev` if not already running.
  *
  * Projects:
- *   - auth: Tests that don't require auth state (sign-in, redirects)
- *   - app: Tests that require an authenticated session
- *   - marketing: Static page tests (no auth needed)
+ *   - marketing: Public marketing pages (hero, programs, coaches, stories, booking) — no auth
+ *   - auth: Auth flows (admin login, redirects, rate limit)
+ *   - admin: Authenticated admin CRUD (coaches, programs, stories)
  */
 export default defineConfig({
   testDir: './src/tests/e2e',
@@ -23,21 +24,18 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'auth',
-      testMatch: /(auth-flow|seed-data)\.spec\.ts/,
+      name: 'marketing',
+      testMatch: /(hero-reel|programs-grid|coach-flip|stories-carousel|booking-form|mobile-nav)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
     {
-      name: 'app',
-      testMatch: /(dashboard|project-detail|create-project|billing)\.spec\.ts/,
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: 'http://localhost:3000',
-      },
+      name: 'auth',
+      testMatch: /(auth-flow|rate-limit)\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
     },
     {
-      name: 'marketing',
-      testMatch: /(hero-cta|faq-accordion|mobile-nav)\.spec\.ts/,
+      name: 'admin',
+      testMatch: /(admin-coach-crud|admin-program-crud|admin-story-crud)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
   ],
