@@ -17,7 +17,7 @@ tags:
 
 # Distill Project Into Skill — Meta-SKILL
 
-> **Purpose:** Guide any coding agent to produce a comprehensive, production-grade `SKILL.md` for any given codebase by following a structured, six-phase validation and distillation process.
+> **Purpose:** Guide any coding agent to produce a comprehensive, production-grade `SKILL.md` for modern **web application** codebases (React, Vue, Svelte, Angular, etc.) by following a structured, six-phase validation and distillation process.
 >
 > **When to use:** After completing a major project update, security remediation, architectural overhaul, or whenever the codebase has accumulated enough hard-won knowledge that a single reference document would prevent repeated mistakes.
 >
@@ -32,7 +32,8 @@ tags:
 3. [Section Specifications](#3-section-specifications)
 4. [Validation Checklist](#4-validation-checklist)
 5. [Anti-Patterns for SKILL.md Authors](#5-anti-patterns-for-skillmd-authors)
-6. [Appendix: Example Section Templates](#6-appendix-example-section-templates)
+6. [Skill Maintenance & Evolution](#6-skill-maintenance-and-evolution)
+7. [Appendix: Example Section Templates](#7-appendix-example-section-templates)
 
 ---
 
@@ -95,7 +96,7 @@ All SKILL.md creation follows this exact workflow. Do not skip phases.
 **Tasks:**
 1. Read `README.md`, `AGENTS.md`, `CLAUDE.md`, or any existing project docs
 2. Read `package.json` / `Cargo.toml` / `pyproject.toml` — extract all dependencies and scripts
-3. Read configuration files: `tsconfig.json`, `next.config汗流/config.ts`, `eslint.config.*`, `vitest.config.*`, `next.config.ts`, `postcss.config.*`
+3. Read configuration files: `tsconfig.json`, `next.config.ts`, `eslint.config.*`, `vitest.config.*`, `next.config.ts`, `postcss.config.*`
 4. Read `.env.example` or the env validation schema (Zod, Joi, etc.)
 5. Map the directory structure: `find src -type f | head -100`
 6. Identify the framework and version (e.g., "Next.js 16 App Router, not Pages Router")
@@ -425,7 +426,7 @@ This section prescribes the **exact content** for each of the 20 standard sectio
 - TypeScript pitfalls (e.g., "Don't use `any`")
 - Testing pitfalls (e.g., "Don't use `vi.fn()` directly in `vi.mock()` factory")
 - Design system pitfalls (e.g., "Don't use `amber-400`")
-- Security pitfalls (e.g., "Don't read给他一个给用户未清理的输入")
+- Security pitfalls (e.g., "Don't read uncleaned user input")
 - Performance pitfalls (e.g., "Don't import `@/lib/storage/r2` in client components")
 
 **Verification:** Every pitfall should be demonstrable with a "don't do this / do this instead" code example.
@@ -590,7 +591,86 @@ Before declaring a SKILL.md complete, verify ALL of the following:
 
 ---
 
-## 6. Appendix: Example Section Templates
+## 6. Skill Maintenance & Evolution
+
+A SKILL.md is not "write once, read forever." It must evolve with the codebase. Without maintenance, it becomes a liability — outdated instructions that mislead more than help.
+
+### §6.1 When to Update
+
+| Trigger | Action |
+|---|---|
+| New sprint completed | Append lessons to §12; add new anti-patterns to §9 if bugs were found |
+| Dependency major upgrade | Update §2 versions; document any breaking changes in §3 or §10 |
+| New feature shipped | Update §5 component inventory; add any new hooks to §6; update §7 data files |
+| Security audit completed | Add findings to §9; remediation steps to §10; hardening to §14 |
+| Build/test pipeline changed | Update §11 pre-ship checklist; §3 bootstrapping if commands changed |
+| Team member onboarding confusion | If someone asked "how do I...?", that section needs expansion |
+| Sprint 3+ without update | Schedule dedicated "doc maintenance" half-day |
+
+### §6.2 Version Numbering
+
+Use semantic versioning for the SKILL.md itself:
+
+```
+v1.0.0  Initial release — covers MVP scope
+v1.1.0  Minor — added new sections (e.g., Appendix D)
+v1.1.1  Patch — corrected test counts, fixed file paths
+v2.0.0  Major — dependency upgrade (e.g., Next.js 15 → 16) changed patterns
+```
+
+**Rule:** Bump the minor version on every sprint. Bump the major version on framework upgrades.
+
+### §6.3 Drift Detection
+
+Run this monthly to detect when the codebase has outpaced the docs:
+
+```bash
+#!/bin/bash
+# skill-drift-check.sh — Add to CI or run manually
+
+ERRORS=0
+
+# 1. Verify test counts match
+UNIT_TESTS=$(pnpm test 2>&1 | grep "Tests" | awk '{print $2}')
+SKILL_UNIT=$(grep "Tests.*pass" docs/SKILL.md | head -1 | grep -oP '\d+(?=\s+unit)')
+if [ "$UNIT_TESTS" != "$SKILL_UNIT" ]; then
+  echo "⚠  SKILL.md claims $SKILL_UNIT unit tests; actual: $UNIT_TESTS"
+  ERRORS=$((ERRORS+1))
+fi
+
+# 2. Verify no new components are unlisted
+COMPONENT_COUNT=$(find src/components -name "*.tsx" | wc -l)
+SKILL_COMPONENTS=$(grep -oP '\d+(?=\s+components)' docs/SKILL.md | head -1)
+if [ "$COMPONENT_COUNT" != "$SKILL_COMPONENTS" ]; then
+  echo "⚠  SKILL.md claims $SKILL_COMPONENTS components; actual: $COMPONENT_COUNT"
+  ERRORS=$((ERRORS+1))
+fi
+
+# 3. Verify env var count matches
+ENV_COUNT=$(grep -c "^env\." src/lib/env/index.ts 2>/dev/null || echo "0")
+SKILL_ENV=$(grep -oP '\d+(?=\s+env vars)' docs/SKILL.md | head -1 || echo "0")
+if [ "$ENV_COUNT" != "$SKILL_ENV" ]; then
+  echo "⚠  SKILL.md claims $SKILL_ENV env vars; actual: $ENV_COUNT"
+  ERRORS=$((ERRORS+1))
+fi
+
+# 4. Verify no TODO/FIXME remain
+TODO_COUNT=$(grep -c "TODO\|FIXME" docs/SKILL.md || echo "0")
+if [ "$TODO_COUNT" -gt 0 ]; then
+  echo "⚠  Found $TODO_COUNT TODO/FIXME in SKILL.md"
+  ERRORS=$((ERRORS+1))
+fi
+
+if [ $ERRORS -eq 0 ]; then
+  echo "✅ SKILL.md drift check passed"
+else
+  echo "❌ Found $ERRORS discrepancy(s). Update SKILL.md."
+  exit 1
+fi
+
+---
+
+## 7. Appendix: Example Section Templates
 
 ### Template: §2 Tech Stack Table
 
