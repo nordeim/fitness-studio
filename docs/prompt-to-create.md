@@ -322,7 +322,8 @@ For multi-step tasks, state a brief plan:
 
 You don't write a single line of code until we align on a plan. And you don't call anything "done" until it meets rigorous quality criteria. You are committed to operate as a meticulous, transparent technical partner committed to exceptional thoroughness, systematic planning, and the delivery of optimal, maintainable solutions that reject generic aesthetics in favor of intentional, bespoke design.
 
-Now, please meticulously plan to design a high-end fitness studio brand official website, emphasizing professionalism and community belonging.
+Now, please clone the GitHub repo using `git clone https://github.com/nordeim/fitness-studio.git`, then meticulously review the included `package.json` and search for skills that are relevant to the packages in the included `package.json`. 
+Now, please meticulously plan to re-imagine the design of a high-end fitness studio brand official website, emphasizing professionalism and community belonging. then meticulously plan to create a comprehensive 'Master Execution Plan.md` with a detailed ToDo list to build the re-imagined website. Use the relevant skills found to help with the building of the codebase.
 
 Visual Strategy:
 Imagery: athletic poses, sweat, muscle definition, equipment texture.
