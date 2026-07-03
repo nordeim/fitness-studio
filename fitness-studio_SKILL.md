@@ -9,7 +9,7 @@ description: >
   storage, Upstash rate limiting, Zod 4 validation, and comprehensive OWASP security hardening.
   Use for luxury-brand marketing sites, fitness studio websites, or any Next.js 16 full-stack
   project requiring cinematic dark-mode aesthetics with production-grade infrastructure.
-version: 1.1.0
+version: 1.1.1
 date: 2026-07-03
 tags:
   - nextjs
@@ -75,8 +75,8 @@ IRONFORGE is a production-grade marketing + booking + memberships + admin websit
 ### Non-Negotiable Design Rules
 
 1. **Pure black canvas** (`#0a0a0a`) — never use white or light backgrounds
-2. **Single neon orange accent** (`#FF5400`) — rationed, the ONLY hue that asserts itself
-3. **Metallic silver chrome** (`#C8C8C8`) — secondary CTA, equipment reference
+2. **Single neon orange accent** (`#ff5400`) — rationed, the ONLY hue that asserts itself
+3. **Metallic silver chrome** (`#c8c8c8`) — secondary CTA, equipment reference
 4. **B&W noir photography** — `grayscale(100%) contrast(1.55) brightness(0.42)` on all images
 5. **Bebas Neue display** at massive sizes (up to 14vw) for hero headlines only
 6. **CSS-only animations** — no Framer Motion, no GSAP, no Lottie
@@ -85,6 +85,7 @@ IRONFORGE is a production-grade marketing + booking + memberships + admin websit
 ### Anti-Generic Mandate
 
 **Rejected:**
+
 - Bento grids, hero splits, mesh gradients, glassmorphism
 - Inter/Roboto default typography
 - Purple/indigo blur, default Tailwind blue, amber-100/200
@@ -101,26 +102,26 @@ IRONFORGE is a production-grade marketing + booking + memberships + admin websit
 
 ## 2. Tech Stack & Environment
 
-| Layer | Technology | Version | Critical Note |
-|---|---|---|---|
-| Framework | Next.js (App Router) | `16.2.10` | Turbopack dev; `proxy.ts` replaces `middleware.ts` |
-| UI Runtime | React | `19.2.7` | `react-hooks/set-state-in-effect` rule is `error` |
-| Language | TypeScript | `5.9.3` | `strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax` |
-| Styling | Tailwind CSS | `4.3.2` | CSS-first `@theme` — NO `tailwind.config.js` |
-| UI Primitives | Radix UI + shadcn/ui | — | Dialog, Accordion, Dropdown, Slot (custom-wrapped) |
-| Database | PostgreSQL + Drizzle ORM | `0.45.2` | 11 tables, 3 migrations, `ON CONFLICT DO NOTHING`, `.notNull()` on `published`/`order` (H4 fix) |
-| Auth | Auth.js v5 (next-auth) | `5.0.0-beta.31` | JWT strategy, no DrizzleAdapter, `trustHost: true` |
-| Job Queue | Inngest | `4.11.0` | v4 `createFunction` uses `triggers` in config object |
-| Payments | Stripe | `22.3.0` | Checkout redirect model, webhook signature verification |
-| AI | Replicate | `1.4.0` | SDXL, env-configurable model ID (T4 lesson) |
-| Storage | Cloudflare R2 (S3) | — | `MAX_PUT_OBJECT_BYTES = 500 MB` (T7 lesson) |
-| Rate Limit | Upstash Redis | `2.0.8` | Sliding window, no-op fallback when not configured |
-| Validation | Zod | `4.4.3` | Enum `{ message }` not `{ errorMap }`; strict UUID v4 |
-| Testing | Vitest + Playwright | `4.1.9` / `1.61.0` | 183 unit tests (16 files) + 8 E2E spec files |
-| Pkg Manager | pnpm | `≥10.26.0` | `packageManager` field pinned in `package.json` |
-| Node.js | — | `≥20.18.0` | Pinned in `.nvmrc` |
-| Toasts | sonner | `2.0.7` | Server action success/error feedback |
-| Icons | lucide-react | `0.460.0` | Tree-shaken per-icon |
+| Layer         | Technology               | Version            | Critical Note                                                                                   |
+| ------------- | ------------------------ | ------------------ | ----------------------------------------------------------------------------------------------- |
+| Framework     | Next.js (App Router)     | `16.2.10`          | Turbopack dev; `proxy.ts` replaces `middleware.ts`                                              |
+| UI Runtime    | React                    | `19.2.7`           | `react-hooks/set-state-in-effect` rule is `error`                                               |
+| Language      | TypeScript               | `5.9.3`            | `strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`                                    |
+| Styling       | Tailwind CSS             | `4.3.2`            | CSS-first `@theme` — NO `tailwind.config.js`                                                    |
+| UI Primitives | Radix UI + shadcn/ui     | —                  | Dialog, Accordion, Dropdown, Slot (custom-wrapped)                                              |
+| Database      | PostgreSQL + Drizzle ORM | `0.45.2`           | 11 tables, 3 migrations, `ON CONFLICT DO NOTHING`, `.notNull()` on `published`/`order` (H4 fix) |
+| Auth          | Auth.js v5 (next-auth)   | `5.0.0-beta.31`    | JWT strategy, no DrizzleAdapter, `trustHost: true`                                              |
+| Job Queue     | Inngest                  | `4.11.0`           | v4 `createFunction` uses `triggers` in config object                                            |
+| Payments      | Stripe                   | `22.3.0`           | Checkout redirect model, webhook signature verification                                         |
+| AI            | Replicate                | `1.4.0`            | SDXL, env-configurable model ID (T4 lesson)                                                     |
+| Storage       | Cloudflare R2 (S3)       | —                  | `MAX_PUT_OBJECT_BYTES = 500 MB` (T7 lesson)                                                     |
+| Rate Limit    | Upstash Ratelimit        | `2.0.8`            | Sliding window, no-op fallback when not configured                                              |
+| Validation    | Zod                      | `4.4.3`            | Enum `{ message }` not `{ errorMap }`; strict UUID v4                                           |
+| Testing       | Vitest + Playwright      | `4.1.9` / `1.61.0` | 183 unit tests (16 files) + 9 E2E spec files                                                    |
+| Pkg Manager   | pnpm                     | `≥10.26.0`         | `packageManager` field pinned in `package.json`                                                 |
+| Node.js       | —                        | `≥20.0.0`          | `≥20.0.0` (engines); `20.18.0` pinned in `.nvmrc`                                               |
+| Toasts        | sonner                   | `2.0.7`            | Server action success/error feedback                                                            |
+| Icons         | lucide-react             | `0.460.0`          | Tree-shaken per-icon                                                                            |
 
 **Environment variables:** 26 total (see `.env.example`). Build-context fallback returns placeholders when `NEXT_PHASE=phase-production-build` or `NODE_ENV=test`. **⚠️ Production-critical:** `NEXT_PUBLIC_APP_URL` MUST be set to the production domain — without it, `sitemap.xml`, `robots.txt`, `metadataBase`, and OG `url` publish `localhost` URLs (M1 fix).
 
@@ -147,35 +148,35 @@ pnpm typecheck && pnpm lint && pnpm test && pnpm build
 
 ### All Commands
 
-| Command | Purpose |
-|---|---|
-| `pnpm dev` | Dev server (Turbopack) on :3000 |
-| `pnpm build` | Production build |
-| `pnpm start` | Start production server |
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm lint` | ESLint flat config |
-| `pnpm test` | Vitest (183 unit tests, 16 files) |
-| `pnpm test:e2e` | Playwright (requires dev server) |
-| `pnpm format` | Prettier write |
-| `pnpm drizzle:generate` | Generate migration from schema diff |
-| `pnpm drizzle:migrate` | Apply migrations |
-| `pnpm db:seed` | Seed (8 coaches + 9 programs + 6 stories + 48 slots) |
-| `pnpm db:reset` | Migrate + seed in one command |
-| `bash scripts/smoke-test.sh` | Post-deploy smoke test |
+| Command                      | Purpose                                              |
+| ---------------------------- | ---------------------------------------------------- |
+| `pnpm dev`                   | Dev server (Turbopack) on :3000                      |
+| `pnpm build`                 | Production build                                     |
+| `pnpm start`                 | Start production server                              |
+| `pnpm typecheck`             | `tsc --noEmit`                                       |
+| `pnpm lint`                  | ESLint flat config                                   |
+| `pnpm test`                  | Vitest (183 unit tests, 16 files)                    |
+| `pnpm test:e2e`              | Playwright (requires dev server)                     |
+| `pnpm format`                | Prettier write                                       |
+| `pnpm drizzle:generate`      | Generate migration from schema diff                  |
+| `pnpm drizzle:migrate`       | Apply migrations                                     |
+| `pnpm db:seed`               | Seed (8 coaches + 9 programs + 6 stories + 48 slots) |
+| `pnpm db:reset`              | Migrate + seed in one command                        |
+| `bash scripts/smoke-test.sh` | Post-deploy smoke test                               |
 
 ### Critical Configuration Files
 
-| File | Purpose | Key Setting |
-|---|---|---|
-| `next.config.ts` | CSP, HSTS, security headers, image remotePatterns, serverExternalPackages | `serverExternalPackages` is top-level (NOT under `experimental`) |
-| `tsconfig.json` | TypeScript strict | `strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax` |
-| `eslint.config.mjs` | Flat config, 9.x | `no-restricted-imports` on `src/features/*/domain/**` |
-| `vitest.config.ts` | Test runner | Includes `src/tests/unit/**` + `src/features/**/*.test.*` |
-| `postcss.config.mjs` | Tailwind v4 | `@tailwindcss/postcss` plugin only |
-| `drizzle.config.ts` | Drizzle Kit | `dialect: 'postgresql'`, uses `DATABASE_URL_UNPOOLED` |
-| `src/app/globals.css` | Design tokens | `@theme` block — all colors, fonts, motion, z-index |
-| `src/proxy.ts` | Edge middleware | Next.js 16 — export `proxy` not `middleware` |
-| `src/lib/env.ts` | Zod env validation | Build-context fallback for `next build` |
+| File                  | Purpose                                                                   | Key Setting                                                      |
+| --------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `next.config.ts`      | CSP, HSTS, security headers, image remotePatterns, serverExternalPackages | `serverExternalPackages` is top-level (NOT under `experimental`) |
+| `tsconfig.json`       | TypeScript strict                                                         | `strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`     |
+| `eslint.config.mjs`   | Flat config, 9.x                                                          | `no-restricted-imports` on `src/features/*/domain/**`            |
+| `vitest.config.ts`    | Test runner                                                               | Includes `src/tests/unit/**` + `src/features/**/*.test.*`        |
+| `postcss.config.mjs`  | Tailwind v4                                                               | `@tailwindcss/postcss` plugin only                               |
+| `drizzle.config.ts`   | Drizzle Kit                                                               | `dialect: 'postgresql'`, uses `DATABASE_URL_UNPOOLED`            |
+| `src/app/globals.css` | Design tokens                                                             | `@theme` block — all colors, fonts, motion, z-index              |
+| `src/proxy.ts`        | Edge middleware                                                           | Next.js 16 — export `proxy` not `middleware`                     |
+| `src/lib/env.ts`      | Zod env validation                                                        | Build-context fallback for `next build`                          |
 
 ### pnpm-workspace.yaml (T0 lesson)
 
@@ -185,8 +186,10 @@ packages:
 allowBuilds:
   esbuild: true
   sharp: true
+  unrs-resolver: true
 onlyBuiltDependencies:
   - sharp
+  - unrs-resolver
   - esbuild
 ```
 
@@ -207,18 +210,18 @@ Required by pnpm 9+ even for single-package repos. Without it, `pnpm install` fa
   --color-bg-card-hover: #1a1a1a;
 
   /* Foreground (30%) */
-  --color-fg: #f5f5f5;       /* 18.16:1 on bg — AAA */
-  --color-fg-dim: #c0c0c0;   /* 10.88:1 — AAA */
-  --color-muted: #8a8a8a;    /* 5.5:1 — AA (v2: raised from #6a6a6a) */
+  --color-fg: #f5f5f5; /* 18.16:1 on bg — AAA */
+  --color-fg-dim: #c0c0c0; /* 10.88:1 — AAA */
+  --color-muted: #8a8a8a; /* 5.5:1 — AA (v2: raised from #6a6a6a) */
 
   /* Accent (10%) */
-  --color-accent: #FF5400;
-  --color-accent-bright: #FF7A33;
-  --color-accent-dim: #B33A00;
+  --color-accent: #ff5400;
+  --color-accent-bright: #ff7a33;
+  --color-accent-dim: #b33a00;
   --color-accent-glow: rgba(255, 84, 0, 0.45);
 
   /* Chrome */
-  --color-silver: #C8C8C8;
+  --color-silver: #c8c8c8;
   --color-silver-dim: #5a5a5a;
 
   /* Lines */
@@ -226,46 +229,70 @@ Required by pnpm 9+ even for single-package repos. Without it, `pnpm install` fa
   --color-border-light: #2a2a2a;
 
   /* Typography */
-  --font-display: var(--font-bebas-neue), sans-serif;
-  --font-heading: var(--font-oswald), sans-serif;
-  --font-body: var(--font-archivo), system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), monospace;
+  --font-display: var(--font-bebas-neue), 'Arial Narrow', sans-serif;
+  --font-heading: var(--font-oswald), 'Inter Tight', sans-serif;
+  --font-body: var(--font-archivo), 'Inter', system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), 'Geist Mono', monospace;
 
   /* Motion */
   --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-flip: cubic-bezier(0.4, 0.2, 0.2, 1);
   --dur-reveal: 900ms;
   --dur-flip: 900ms;
   --dur-sticky: 600ms;
+  --dur-carousel-snap: 700ms;
+  --dur-micro: 150ms;
+  --dur-standard: 300ms;
+  --dur-dramatic: 500ms;
+
+  /* Layout */
+  --container-max: 1600px;
+  --gutter: 1.5rem;
+  --gutter-lg: 2.5rem;
 
   /* Z-Index */
-  --z-behind: -1;  --z-base: 0;  --z-raised: 10;
-  --z-dropdown: 200;  --z-sticky: 300;  --z-overlay: 400;
-  --z-modal: 500;  --z-popover: 600;  --z-tooltip: 700;
-  --z-toast: 800;  --z-max: 999;
+  --z-behind: -1;
+  --z-base: 0;
+  --z-raised: 10;
+  --z-dropdown: 200;
+  --z-sticky: 300;
+  --z-overlay: 400;
+  --z-modal: 500;
+  --z-popover: 600;
+  --z-tooltip: 700;
+  --z-toast: 800;
+  --z-max: 999;
+
+  /* Animations (backed by @keyframes in the same @theme block) */
+  --animate-pulse-cta: pulse-cta 2.4s ease-out infinite;
+  --animate-marquee: marquee 38s linear infinite;
+  --animate-ken-burns: ken-burns 9s ease-out forwards;
+  --animate-wave: wave 0.7s ease-in-out infinite;
+  --animate-rec-blink: rec-blink 1.5s ease-in-out infinite;
 }
 ```
 
 ### Typography Hierarchy
 
-| Role | Font | Weight | Size | Tracking | Line-height |
-|---|---|---|---|---|---|
-| Display | Bebas Neue | 400 | 8.5vw / 14vw | 0.005em | 0.85 |
-| Heading 1 | Oswald | 600 | 4rem / 2.5rem | 0.01em | 1.1 |
-| Heading 2 | Oswald | 500 | 2.25rem / 1.75rem | 0.02em | 1.1 |
-| Body | Archivo | 400 | 1.0625rem | 0 | 1.5 |
-| Telemetry | JetBrains Mono | 400 | 0.6875rem | 0.2em upper | 1.5 |
-| CTA | Oswald | 600 | 0.85rem | 0.2em upper | 1.1 |
+| Role      | Font           | Weight | Size              | Tracking    | Line-height |
+| --------- | -------------- | ------ | ----------------- | ----------- | ----------- |
+| Display   | Bebas Neue     | 400    | 8.5vw / 14vw      | 0.005em     | 0.85        |
+| Heading 1 | Oswald         | 600    | 4rem / 2.5rem     | 0.01em      | 1.1         |
+| Heading 2 | Oswald         | 500    | 2.25rem / 1.75rem | 0.02em      | 1.1         |
+| Body      | Archivo        | 400    | 1.0625rem         | 0           | 1.5         |
+| Telemetry | JetBrains Mono | 400    | 0.6875rem         | 0.2em upper | 1.5         |
+| CTA       | Oswald         | 600    | 0.85rem           | 0.2em upper | 1.1         |
 
 ### Keyframes (6 total)
 
-| Name | Duration | Use |
-|---|---|---|
-| `pulse-cta` | 2.4s infinite | Primary CTA radial glow |
-| `marquee` | 38s linear infinite | Hero bottom ticker |
-| `ken-burns` | 9s forwards | Active hero reel frame |
-| `wave` | 0.7s infinite | Mute toggle equalizer bars |
-| `rec-blink` | 1.5s infinite | "REEL · LIVE" indicator |
+| Name            | Duration                          | Use                                                                                                |
+| --------------- | --------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `pulse-cta`     | 2.4s infinite                     | Primary CTA radial glow                                                                            |
+| `marquee`       | 38s linear infinite               | Hero bottom ticker                                                                                 |
+| `ken-burns`     | 9s forwards                       | Active hero reel frame                                                                             |
+| `wave`          | 0.7s infinite                     | Mute toggle equalizer bars                                                                         |
+| `rec-blink`     | 1.5s infinite                     | "REEL · LIVE" indicator                                                                            |
 | `progress-fill` | `frameDurationMs` linear forwards | Hero reel progress bar (M8 fix — CSS-driven, zero React re-renders; restarted via `key={current}`) |
 
 ### Custom Utilities (`@utility`)
@@ -294,18 +321,20 @@ Layer 4  src/lib/                → Infrastructure: Drizzle, Auth, Inngest, R2,
 
 ### Component Inventory
 
-| Category | Count | Key Files |
-|---|---|---|
-| Layout | 8 | Container, Section, SectionMarker, SiteHeader, MobileNavSheet, SiteFooter, GrainOverlay, StickyCTABar |
-| Hero | 7 | HeroReel, ReelFrame, ReelControl, ReelProgress, HeroHeadline, CoachStrip, Marquee |
-| Programs | 4 | ProgramsSection, ProgramGrid, ProgramCard, GoalSelector |
-| Coaches | 3 | CoachesSection, CoachFlipGrid, CoachFlipCard |
-| Stories | 3 | StoriesSection, StoriesCarousel, StoryCard |
-| Booking | 3 | BookingSection, BookingCTA, StatBlock |
-| Memberships | 2 | MembershipsSection, MembershipTierComparison |
-| UI Primitives | 4 | button, input, textarea, label (shadcn-wrapped) |
-| Other | 3 | ScrollReveal, AdminSessionProvider, JsonLd |
-| **Total** | **37** | |
+| Category      | Count  | Key Files                                                                                             |
+| ------------- | ------ | ----------------------------------------------------------------------------------------------------- |
+| Layout        | 8      | Container, Section, SectionMarker, SiteHeader, MobileNavSheet, SiteFooter, GrainOverlay, StickyCTABar |
+| Hero          | 7      | HeroReel, ReelFrame, ReelControl, ReelProgress, HeroHeadline, CoachStrip, Marquee                     |
+| Programs      | 4      | ProgramsSection, ProgramGrid, ProgramCard, GoalSelector                                               |
+| Coaches       | 3      | CoachesSection, CoachFlipGrid, CoachFlipCard                                                          |
+| Stories       | 3      | StoriesSection, StoriesCarousel, StoryCard                                                            |
+| Booking       | 3      | BookingSection, BookingCTA, StatBlock                                                                 |
+| Memberships   | 2      | MembershipsSection, MembershipTierComparison                                                          |
+| UI Primitives | 4      | button, input, textarea, label (shadcn-wrapped)                                                       |
+| Other         | 3      | ScrollReveal, AdminSessionProvider, JsonLd                                                            |
+| **Total**     | **37** |                                                                                                       |
+
+_Note: This count covers `src/components/` only. Additional components exist in feature modules (e.g., `BookingForm` in `src/features/booking/BookingForm.tsx`) per the 5-layer architecture._
 
 ### Client vs Server Component Decision Tree
 
@@ -320,33 +349,42 @@ Does the component need:
 Otherwise: Server Component (default — no directive needed)
 ```
 
-### Queries Pattern (DB-first with static fallback + published filter + Zod validation)
+### Queries Pattern (DB-first with static fallback + published filter)
 
 ```typescript
 // src/features/programs/queries.ts — H2 + H4 fix: published filter, no casts, Zod validation
 export async function getPrograms(goal?: string): Promise<Program[]> {
   try {
-    const { db } = await import('@/lib/db/client');    // dynamic import
+    const { db } = await import('@/lib/db/client'); // dynamic import
     const { programs } = await import('@/lib/db/schema');
-    const result = await db.select().from(programs)
+    const result = await db
+      .select()
+      .from(programs)
       .where(and(eq(programs.published, true), goal ? eq(programs.goal, goal) : undefined))
       .orderBy(programs.order);
     if (result.length > 0) {
-      const validated = ProgramArraySchema.safeParse(result);  // Zod validation (defense-in-depth)
+      const validated = ProgramArraySchema.safeParse(result); // Zod validation (defense-in-depth)
       if (validated.success) return validated.data;
     }
-    return goal ? STATIC_PROGRAMS.filter(p => p.published && p.goal === goal) : STATIC_PROGRAMS.filter(p => p.published);
+    return goal
+      ? STATIC_PROGRAMS.filter((p) => p.published && p.goal === goal)
+      : STATIC_PROGRAMS.filter((p) => p.published);
   } catch {
-    return goal ? STATIC_PROGRAMS.filter(p => p.published && p.goal === goal) : STATIC_PROGRAMS.filter(p => p.published);
+    return goal
+      ? STATIC_PROGRAMS.filter((p) => p.published && p.goal === goal)
+      : STATIC_PROGRAMS.filter((p) => p.published);
   }
 }
 ```
 
 **Key changes (audit remediation):**
+
 - `.where(eq(programs.published, true))` — unpublished records never reach the API (H2 fix)
 - `ProgramArraySchema.safeParse(result)` — Zod validates DB results before returning (defense-in-depth for varchar→enum narrowing)
 - No `as unknown as Program[]` casts — Drizzle `.notNull()` on `published`/`order` columns makes inferred types match Zod schemas (H4 fix)
 - Static fallback also filters by `published: true`
+
+**Zod validation scope:** Programs module validates DB results via `ProgramArraySchema.safeParse()` (defense-in-depth for `varchar→enum` narrowing on `goal`). Coaches and stories modules validate at the API route layer (`CoachArraySchema.safeParse()` in `/api/coaches/route.ts`, `StoryArraySchema.safeParse()` in `/api/stories/route.ts`) — not in the query files themselves.
 
 ### Server Action Pattern (Auth-First + UUID validation)
 
@@ -360,7 +398,11 @@ const IdSchema = z.string().uuid('Invalid ID format');
 async function requireAdmin() {
   const session = await auth();
   if (!session?.user || (session.user as { role?: string }).role !== 'admin') {
-    return { success: false as const, code: 'UNAUTHORIZED' as const, message: 'Admin access required' };
+    return {
+      success: false as const,
+      code: 'UNAUTHORIZED' as const,
+      message: 'Admin access required',
+    };
   }
   return { success: true as const };
 }
@@ -372,11 +414,16 @@ export async function updateCoach(id: string, input: unknown) {
   // M5 fix: validate id as UUID BEFORE any DB call
   const idResult = IdSchema.safeParse(id);
   if (!idResult.success) {
-    return { success: false as const, code: 'VALIDATION' as const, message: idResult.error.issues[0]?.message ?? 'Invalid ID' };
+    return {
+      success: false as const,
+      code: 'VALIDATION' as const,
+      message: idResult.error.issues[0]?.message ?? 'Invalid ID',
+    };
   }
 
   const parsed = CoachFormSchema.safeParse(input);
-  if (!parsed.success) return { success: false, code: 'VALIDATION', message: parsed.error.issues[0]?.message };
+  if (!parsed.success)
+    return { success: false, code: 'VALIDATION', message: parsed.error.issues[0]?.message };
   // ... DB update + revalidatePath
 }
 ```
@@ -392,6 +439,7 @@ export async function updateCoach(id: string, input: unknown) {
 **Signature:** `useHeroReel({ frameCount, frameDurationMs?, autoAdvance? }): { currentFrame, muted, isPlaying, goTo, next, toggleMute, containerRef, frameDurationMs }`
 
 **Key details:**
+
 - `isPlaying` is DERIVED from `shouldPlay` (not `setState` in effect — React 19 compliant)
 - Pauses when: `prefers-reduced-motion`, off-screen (IntersectionObserver threshold 0.25), `autoAdvance=false`, `frameCount<=1`
 - **M8 fix:** Progress bar is now CSS-driven (`@keyframes progress-fill` in `globals.css` + `key={current}` on the fill div in `ReelProgress.tsx`). The hook NO LONGER calls `setProgress` every 100ms — only `setCurrentFrame` on frame advance. This eliminates 10 re-renders per second.
@@ -405,6 +453,7 @@ export async function updateCoach(id: string, input: unknown) {
 **Signature:** `useStoriesCarousel({ cardCount, autoAdvanceMs?, pauseOnHover? }): { currentIndex, trackX, isDragging, trackRef, viewportRef, goTo, next, prev, isPaused }`
 
 **Key details:**
+
 - Pointer Events unified API (mouse + touch)
 - Rubber-band at edges: 0.35× resistance past bounds
 - Momentum on release: velocity × 300ms, then snap to nearest card (700ms ease-snap)
@@ -439,12 +488,12 @@ export async function updateCoach(id: string, input: unknown) {
 
 ### Static Data Files
 
-| File | Count | Content |
-|---|---|---|
-| `src/features/coaches/data.ts` | 8 coaches | slug, name, title, bio, certifications[], specialties[], signatureWorkout, portraitKey, yearsExp |
-| `src/features/programs/data.ts` | 9 programs | slug, goal, title, description, duration, sessionsPerWeek, intensity, heroKey, priceCents, coachId |
-| `src/features/stories/data.ts` | 6 stories | slug, memberName, memberAge, programSlug, weeks, beforeKey, afterKey, quote |
-| `src/features/memberships/data.ts` | 3 tiers + 1 pack | id, name, priceMonthly, priceCents, stripePriceId, features[], limitations[], cta |
+| File                               | Count            | Content                                                                                            |
+| ---------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------- |
+| `src/features/coaches/data.ts`     | 8 coaches        | slug, name, title, bio, certifications[], specialties[], signatureWorkout, portraitKey, yearsExp   |
+| `src/features/programs/data.ts`    | 9 programs       | slug, goal, title, description, duration, sessionsPerWeek, intensity, heroKey, priceCents, coachId |
+| `src/features/stories/data.ts`     | 6 stories        | slug, memberName, memberAge, programSlug, weeks, beforeKey, afterKey, quote                        |
+| `src/features/memberships/data.ts` | 3 tiers + 1 pack | id, name, priceMonthly, priceCents, stripePriceId, features[], limitations[], cta                  |
 
 ### How to Add a New Coach
 
@@ -471,18 +520,19 @@ export async function updateCoach(id: string, input: unknown) {
 
 ### Color Contrast Table
 
-| Foreground | Background | Ratio | WCAG Level |
-|---|---|---|---|
-| `#f5f5f5` (fg) | `#0a0a0a` (bg) | 18.16:1 | AAA normal |
-| `#c0c0c0` (fg-dim) | `#0a0a0a` (bg) | 10.88:1 | AAA normal |
-| `#8a8a8a` (muted) | `#0a0a0a` (bg) | 5.5:1 | AA normal (v2 fix) |
-| `#FF5400` (accent) | `#0a0a0a` (bg) | 6.15:1 | AAA large (≥18px only) |
-| `#FF7A33` (accent-bright) | `#0a0a0a` (bg) | 7.62:1 | AAA normal |
-| black | `#FF5400` (accent) | 6.52:1 | AAA large (button text — small) |
+| Foreground                | Background         | Ratio   | WCAG Level                      |
+| ------------------------- | ------------------ | ------- | ------------------------------- |
+| `#f5f5f5` (fg)            | `#0a0a0a` (bg)     | 18.16:1 | AAA normal                      |
+| `#c0c0c0` (fg-dim)        | `#0a0a0a` (bg)     | 10.88:1 | AAA normal                      |
+| `#8a8a8a` (muted)         | `#0a0a0a` (bg)     | 5.5:1   | AA normal (v2 fix)              |
+| `#ff5400` (accent)        | `#0a0a0a` (bg)     | 6.15:1  | AAA large (≥18px only)          |
+| `#ff7a33` (accent-bright) | `#0a0a0a` (bg)     | 7.62:1  | AAA normal                      |
+| black                     | `#ff5400` (accent) | 6.52:1  | AAA large (button text — small) |
 
 ### Focus Ring Specification
 
 Global CSS rule in `globals.css`:
+
 ```css
 a[href]:focus-visible,
 button:focus-visible,
@@ -498,15 +548,21 @@ textarea:focus-visible,
 ### `prefers-reduced-motion` Implementation
 
 Global CSS in `globals.css`:
+
 ```css
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  [data-reveal] { opacity: 1 !important; transform: none !important; }
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 ```
 
@@ -518,14 +574,14 @@ All icon buttons: `h-11 w-11` (44×44). Carousel dots: wrapped in `min-h-11 min-
 
 ### ARIA Patterns
 
-| Component | ARIA |
-|---|---|
-| GoalSelector | `role="radiogroup"` + `role="radio"` + `aria-checked` |
-| StoriesCarousel | `aria-roledescription="carousel"` + `role="group"` per slide + `role="tab"` per dot |
-| CoachFlipCard | `role="button"` + `tabIndex={0}` + `aria-expanded` + descriptive `aria-label` |
-| ReelControl | `aria-pressed` + `aria-label` |
-| MobileNavSheet | Radix Dialog (auto focus trap, Esc, focus restore) |
-| BookingForm errors | `role="alert"` + `aria-invalid` + `aria-describedby` |
+| Component          | ARIA                                                                                |
+| ------------------ | ----------------------------------------------------------------------------------- |
+| GoalSelector       | `role="radiogroup"` + `role="radio"` + `aria-checked`                               |
+| StoriesCarousel    | `aria-roledescription="carousel"` + `role="group"` per slide + `role="tab"` per dot |
+| CoachFlipCard      | `role="button"` + `tabIndex={0}` + `aria-expanded` + descriptive `aria-label`       |
+| ReelControl        | `aria-pressed` + `aria-label`                                                       |
+| MobileNavSheet     | Radix Dialog (auto focus trap, Esc, focus restore)                                  |
+| BookingForm errors | `role="alert"` + `aria-invalid` + `aria-describedby`                                |
 
 ---
 
@@ -653,42 +709,42 @@ The following bugs were found in the post-audit code review and fixed via TDD. E
 
 ### Build Failures
 
-| Error | Cause | Fix |
-|---|---|---|
-| `INNGEST_SIGNING_KEY is required in production` | The production check fires during `next build` | Gate behind `NEXT_PHASE !== 'phase-production-build'` |
-| `Proxy is missing expected function export name` | Using `middleware.ts` instead of `proxy.ts` | Rename file + export `proxy` |
-| `useSearchParams() should be wrapped in a suspense boundary` | Login page uses `useSearchParams()` without Suspense | Wrap in `<Suspense>` |
-| `Cannot find module '../../src/app/page.js'` | Stale `.next/types` cache after moving page | `rm -rf .next` |
+| Error                                                        | Cause                                                | Fix                                                   |
+| ------------------------------------------------------------ | ---------------------------------------------------- | ----------------------------------------------------- |
+| `INNGEST_SIGNING_KEY is required in production`              | The production check fires during `next build`       | Gate behind `NEXT_PHASE !== 'phase-production-build'` |
+| `Proxy is missing expected function export name`             | Using `middleware.ts` instead of `proxy.ts`          | Rename file + export `proxy`                          |
+| `useSearchParams() should be wrapped in a suspense boundary` | Login page uses `useSearchParams()` without Suspense | Wrap in `<Suspense>`                                  |
+| `Cannot find module '../../src/app/page.js'`                 | Stale `.next/types` cache after moving page          | `rm -rf .next`                                        |
 
 ### Runtime Errors
 
-| Error | Cause | Fix |
-|---|---|---|
-| API returns `NOT_CONFIGURED` | Infrastructure env vars are placeholders | Set real values in `.env.local` |
-| Admin redirects in a loop | `AUTH_URL` doesn't match deployment URL | Set `AUTH_URL` to match `NEXT_PUBLIC_APP_URL` |
-| `/api/auth/session` returns error | `AUTH_SECRET` is placeholder | Generate with `openssl rand -base64 32` |
+| Error                             | Cause                                    | Fix                                           |
+| --------------------------------- | ---------------------------------------- | --------------------------------------------- |
+| API returns `NOT_CONFIGURED`      | Infrastructure env vars are placeholders | Set real values in `.env.local`               |
+| Admin redirects in a loop         | `AUTH_URL` doesn't match deployment URL  | Set `AUTH_URL` to match `NEXT_PUBLIC_APP_URL` |
+| `/api/auth/session` returns error | `AUTH_SECRET` is placeholder             | Generate with `openssl rand -base64 32`       |
 
 ### Test Failures
 
-| Error | Cause | Fix |
-|---|---|---|
-| `Cannot access 'mockFn' before initialization` | Mock factory hoisting | Use `vi.hoisted()` |
-| `X is not a constructor` | Arrow function mock can't be `new`-ed | Use `class` syntax |
-| `[PARSE_ERROR] Expected '>'` | JSX in `.test.ts` file | Rename to `.test.tsx` |
-| `expected 18.73 to be close to 18.16` | Incorrect contrast ratio assertion | Update expected value to actual computed ratio |
+| Error                                          | Cause                                 | Fix                                            |
+| ---------------------------------------------- | ------------------------------------- | ---------------------------------------------- |
+| `Cannot access 'mockFn' before initialization` | Mock factory hoisting                 | Use `vi.hoisted()`                             |
+| `X is not a constructor`                       | Arrow function mock can't be `new`-ed | Use `class` syntax                             |
+| `[PARSE_ERROR] Expected '>'`                   | JSX in `.test.ts` file                | Rename to `.test.tsx`                          |
+| `expected 18.73 to be close to 18.16`          | Incorrect contrast ratio assertion    | Update expected value to actual computed ratio |
 
 ### Audit Remediation Debugging Scenarios (2026-07-03)
 
-| Symptom | Cause | Fix |
-|---|---|---|
-| Site is slow / TTFB 350ms+ | Deployment running `pnpm dev` instead of `pnpm start` (browser console shows `[HMR] connected`, `[Fast Refresh] rebuilding`) | Deploy with `docker compose -f docker-compose.prod.yml up -d` (Dockerfile is correct — `pnpm build` → `pnpm start`) |
-| Sitemap shows `localhost` URLs | `NEXT_PUBLIC_APP_URL` not set in deployment env | Set `NEXT_PUBLIC_APP_URL=https://your-domain.com` and redeploy |
-| Checkout returns 503 NOT_CONFIGURED | Stripe env vars not set | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` + create 4 products/prices + update `MEMBERSHIP_TIERS`/`DROP_IN_PACK` in `data.ts` |
-| TS error: `Type 'string' is not assignable to type 'enum'` | Drizzle `varchar` column vs Zod `z.enum()` mismatch | Zod-validate DB results at runtime (see `programs/queries.ts`) OR change column to `pgEnum` |
-| TS error on `response.Body` in R2 getObject | AWS SDK types `response.Body` as `StreamingBlobPayload` (not iterable) | Use `instanceof Readable` type narrowing (see `lib/storage/r2.ts`). Never `@ts-expect-error`. |
-| Hero reel progress bar stutters / causes re-renders | `setProgress` called every 100ms via `setInterval` | Use CSS `@keyframes progress-fill` + `key={current}` (see `ReelProgress.tsx` + `globals.css`) |
-| `/coaches/[slug]` returns 404 | Detail page route missing (was only API route) | Detail pages now exist at `src/app/{coaches,programs,stories}/[slug]/page.tsx` (added in audit remediation) |
-| Dockerfile HEALTHCHECK fails | `/api/health` route was missing | Now exists at `src/app/api/health/route.ts` (returns 200 OK) |
+| Symptom                                                    | Cause                                                                                                                        | Fix                                                                                                                                                                       |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Site is slow / TTFB 350ms+                                 | Deployment running `pnpm dev` instead of `pnpm start` (browser console shows `[HMR] connected`, `[Fast Refresh] rebuilding`) | Deploy with `docker compose -f docker-compose.prod.yml up -d` (Dockerfile is correct — `pnpm build` → `pnpm start`)                                                       |
+| Sitemap shows `localhost` URLs                             | `NEXT_PUBLIC_APP_URL` not set in deployment env                                                                              | Set `NEXT_PUBLIC_APP_URL=https://your-domain.com` and redeploy                                                                                                            |
+| Checkout returns 503 NOT_CONFIGURED                        | Stripe env vars not set                                                                                                      | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` + create 4 products/prices + update `MEMBERSHIP_TIERS`/`DROP_IN_PACK` in `data.ts` |
+| TS error: `Type 'string' is not assignable to type 'enum'` | Drizzle `varchar` column vs Zod `z.enum()` mismatch                                                                          | Zod-validate DB results at runtime (see `programs/queries.ts`) OR change column to `pgEnum`                                                                               |
+| TS error on `response.Body` in R2 getObject                | AWS SDK types `response.Body` as `StreamingBlobPayload` (not iterable)                                                       | Use `instanceof Readable` type narrowing (see `lib/storage/r2.ts`). Never `@ts-expect-error`.                                                                             |
+| Hero reel progress bar stutters / causes re-renders        | `setProgress` called every 100ms via `setInterval`                                                                           | Use CSS `@keyframes progress-fill` + `key={current}` (see `ReelProgress.tsx` + `globals.css`)                                                                             |
+| `/coaches/[slug]` returns 404                              | Detail page route missing (was only API route)                                                                               | Detail pages now exist at `src/app/{coaches,programs,stories}/[slug]/page.tsx` (added in audit remediation)                                                               |
+| Dockerfile HEALTHCHECK fails                               | `/api/health` route was missing                                                                                              | Now exists at `src/app/api/health/route.ts` (returns 200 OK)                                                                                                              |
 
 ---
 
@@ -780,8 +836,8 @@ IRONFORGE_LIVE_URL=https://yourdomain.com bash scripts/smoke-test.sh
 ### Testing Lessons
 
 21. **JSX tests must use `.test.tsx`** extension (oxc parser limitation).
-22. **`vi.hoisted()`** for mock factories (avoids hoisting issues).
-23. **Class syntax** for SDK constructor mocks (arrow functions can't be `new`-ed).
+22. **`vi.hoisted()`** for mock factories when a hoisted `vi.mock()` factory references variables declared above it. Current tests avoid this by using `await import()` after `vi.mock()` or inline values.
+23. **Class syntax** for SDK constructor mocks when a test needs to instantiate a mock with `new` (arrow functions can't be `new`-ed). Currently no tests mock SDK constructors directly.
 24. **DB mock pattern:** `vi.mock('@/lib/db/client', () => { throw new Error('DB unavailable'); })` tests the fallback path.
 
 ### Audit Remediation Lessons (2026-07-03)
@@ -801,26 +857,26 @@ IRONFORGE_LIVE_URL=https://yourdomain.com bash scripts/smoke-test.sh
 
 ## 13. Pitfalls to Avoid
 
-| # | Pitfall | Correct Approach |
-|---|---|---|
-| 1 | Using `tailwind.config.js` | All tokens in `globals.css` `@theme` block |
-| 2 | Using `DrizzleAdapter` with JWT | JWT doesn't need it; type mismatch with our schema |
-| 3 | Using `{ errorMap }` in Zod 4 | Use `{ message }` |
-| 4 | Importing `lib/storage/r2.ts` in client components | Server Component signs URL, passes as prop |
-| 5 | `setState` in `useEffect` body | Derive state or use event callbacks |
-| 6 | Using `middleware.ts` | Rename to `proxy.ts`, export `proxy` |
-| 7 | Placeholder UUIDs | Use valid v4 format (`a1000000-0000-4000-8000-...`) |
-| 8 | Dynamic class interpolation in Tailwind | Use mapping objects with full class strings |
-| 9 | Importing `env` module in infrastructure clients | Use `process.env` directly |
-| 10 | Forgetting `INNGEST_DEV=1` gate behind `NODE_ENV` | Production throws if signing key missing |
-| 11 | Using `as unknown as` casts in queries | Fix the schema (add `.notNull()`) instead — casts hide type mismatches (H4 fix) |
-| 12 | Using `@ts-expect-error` / `@ts-ignore` / `@ts-nocheck` | Use proper type narrowing (`instanceof`, type guards) (M7 fix) |
-| 13 | Substring matching (`message.includes('email')`) for form error routing | Use the `field` property from the server response (M4 fix) |
-| 14 | Including `'unsafe-eval'` in the CSP | Next.js 16 production builds don't need it (H1 fix) |
-| 15 | Hardcoding `localhost:3000` in metadata | Use `process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'` (M1 fix) |
-| 16 | Using `setProgress` in `setInterval` for progress bars | Use CSS `@keyframes` + `key={current}` (M8 fix) |
-| 17 | Writing public queries without `.where(eq(*.published, true))` | Unpublished records would leak via the public API (H2 fix) |
-| 18 | Accepting `id: string` in server actions without UUID validation | Always `z.string().uuid().safeParse(id)` before any DB call (M5 fix) |
+| #   | Pitfall                                                                 | Correct Approach                                                                |
+| --- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| 1   | Using `tailwind.config.js`                                              | All tokens in `globals.css` `@theme` block                                      |
+| 2   | Using `DrizzleAdapter` with JWT                                         | JWT doesn't need it; type mismatch with our schema                              |
+| 3   | Using `{ errorMap }` in Zod 4                                           | Use `{ message }`                                                               |
+| 4   | Importing `lib/storage/r2.ts` in client components                      | Server Component signs URL, passes as prop                                      |
+| 5   | `setState` in `useEffect` body                                          | Derive state or use event callbacks                                             |
+| 6   | Using `middleware.ts`                                                   | Rename to `proxy.ts`, export `proxy`                                            |
+| 7   | Placeholder UUIDs                                                       | Use valid v4 format (`a1000000-0000-4000-8000-...`)                             |
+| 8   | Dynamic class interpolation in Tailwind                                 | Use mapping objects with full class strings                                     |
+| 9   | Importing `env` module in infrastructure clients                        | Use `process.env` directly                                                      |
+| 10  | Forgetting `INNGEST_DEV=1` gate behind `NODE_ENV`                       | Production throws if signing key missing                                        |
+| 11  | Using `as unknown as` casts in queries                                  | Fix the schema (add `.notNull()`) instead — casts hide type mismatches (H4 fix) |
+| 12  | Using `@ts-expect-error` / `@ts-ignore` / `@ts-nocheck`                 | Use proper type narrowing (`instanceof`, type guards) (M7 fix)                  |
+| 13  | Substring matching (`message.includes('email')`) for form error routing | Use the `field` property from the server response (M4 fix)                      |
+| 14  | Including `'unsafe-eval'` in the CSP                                    | Next.js 16 production builds don't need it (H1 fix)                             |
+| 15  | Hardcoding `localhost:3000` in metadata                                 | Use `process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'` (M1 fix)       |
+| 16  | Using `setProgress` in `setInterval` for progress bars                  | Use CSS `@keyframes` + `key={current}` (M8 fix)                                 |
+| 17  | Writing public queries without `.where(eq(*.published, true))`          | Unpublished records would leak via the public API (H2 fix)                      |
+| 18  | Accepting `id: string` in server actions without UUID validation        | Always `z.string().uuid().safeParse(id)` before any DB call (M5 fix)            |
 
 ---
 
@@ -868,7 +924,11 @@ const IdSchema = z.string().uuid('Invalid ID format');
 async function requireAdmin() {
   const session = await auth();
   if (!session?.user || (session.user as { role?: string }).role !== 'admin')
-    return { success: false as const, code: 'UNAUTHORIZED' as const, message: 'Admin access required' };
+    return {
+      success: false as const,
+      code: 'UNAUTHORIZED' as const,
+      message: 'Admin access required',
+    };
   return { success: true as const };
 }
 
@@ -878,10 +938,16 @@ export async function updateCoach(id: string, input: unknown) {
 
   // M5 fix: validate id as UUID BEFORE any DB call
   const idResult = IdSchema.safeParse(id);
-  if (!idResult.success) return { success: false as const, code: 'VALIDATION' as const, message: idResult.error.issues[0]?.message ?? 'Invalid ID' };
+  if (!idResult.success)
+    return {
+      success: false as const,
+      code: 'VALIDATION' as const,
+      message: idResult.error.issues[0]?.message ?? 'Invalid ID',
+    };
 
   const parsed = CoachFormSchema.safeParse(input);
-  if (!parsed.success) return { success: false, code: 'VALIDATION', message: parsed.error.issues[0]?.message };
+  if (!parsed.success)
+    return { success: false, code: 'VALIDATION', message: parsed.error.issues[0]?.message };
   // ... DB update + revalidatePath
 }
 ```
@@ -899,7 +965,7 @@ if (!parsed.success) {
     code: 'VALIDATION',
     message: firstError?.message ?? 'Invalid input',
     requestId: null,
-    field: typeof fieldPath === 'string' ? fieldPath : null,  // client routes via result.field
+    field: typeof fieldPath === 'string' ? fieldPath : null, // client routes via result.field
   };
 }
 
@@ -917,8 +983,12 @@ if (result.code === 'VALIDATION' && result.field) {
 ```css
 /* src/app/globals.css — @theme block */
 @keyframes progress-fill {
-  from { width: 0%; }
-  to { width: 100%; }
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
 }
 ```
 
@@ -952,11 +1022,8 @@ for await (const chunk of response.Body) {
 ### API Route Pattern (Next.js 16 async params)
 
 ```typescript
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ slug: string }> },
-) {
-  const { slug } = await params;  // must await!
+export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params; // must await!
   // ...
 }
 ```
@@ -968,7 +1035,7 @@ function isBuildContext(): boolean {
   return process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'test';
 }
 function loadEnv(): Env {
-  if (isBuildContext()) return { ...placeholders };  // don't throw
+  if (isBuildContext()) return { ...placeholders }; // don't throw
   const parsed = envSchema.safeParse(process.env);
   if (!parsed.success) throw new Error('Invalid environment variables');
   return parsed.data;
@@ -994,7 +1061,9 @@ function getStripe(): Stripe | null {
 
 ```typescript
 // ❌ WRONG — setState in effect body (React 19 rule)
-useEffect(() => { setIsPlaying(shouldPlay); }, [shouldPlay]);
+useEffect(() => {
+  setIsPlaying(shouldPlay);
+}, [shouldPlay]);
 
 // ✅ CORRECT — derive state
 const isPlaying = shouldPlay; // computed, not state
@@ -1005,7 +1074,12 @@ const isPlaying = shouldPlay; // computed, not state
 vi.mock('@aws-sdk/client-s3', () => ({ S3Client: vi.fn(() => ({ send: vi.fn() })) }));
 
 // ✅ CORRECT — class syntax
-vi.mock('@aws-sdk/client-s3', () => { class MockS3 { send = vi.fn(); } return { S3Client: MockS3 }; });
+vi.mock('@aws-sdk/client-s3', () => {
+  class MockS3 {
+    send = vi.fn();
+  }
+  return { S3Client: MockS3 };
+});
 ```
 
 ```typescript
@@ -1014,7 +1088,7 @@ return result as unknown as Coach[];
 
 // ✅ CORRECT — fix the schema (add .notNull()) so Drizzle inferred types match Zod
 // schema: published: boolean('published').default(false).notNull()
-return result;  // no cast needed
+return result; // no cast needed
 ```
 
 ```typescript
@@ -1054,7 +1128,9 @@ const progressTimer = setInterval(() => {
 const result = await db.select().from(coaches).orderBy(coaches.order);
 
 // ✅ CORRECT — filter by published: true
-const result = await db.select().from(coaches)
+const result = await db
+  .select()
+  .from(coaches)
   .where(eq(coaches.published, true))
   .orderBy(coaches.order);
 ```
@@ -1081,14 +1157,14 @@ export async function deleteCoach(id: string) {
 
 Tailwind v4 default breakpoints (no custom config):
 
-| Prefix | Min-width | Usage |
-|---|---|---|
-| (none) | 0px | Mobile base styles |
-| `sm:` | 640px | Small tablets |
-| `md:` | 768px | Tablets (nav switches desktop/mobile) |
-| `lg:` | 1024px | Desktop |
-| `xl:` | 1280px | Large desktop |
-| `2xl:` | 1536px | Extra large |
+| Prefix | Min-width | Usage                                 |
+| ------ | --------- | ------------------------------------- |
+| (none) | 0px       | Mobile base styles                    |
+| `sm:`  | 640px     | Small tablets                         |
+| `md:`  | 768px     | Tablets (nav switches desktop/mobile) |
+| `lg:`  | 1024px    | Desktop                               |
+| `xl:`  | 1280px    | Large desktop                         |
+| `2xl:` | 1536px    | Extra large                           |
 
 **Symmetrical breakpoints rule:** Desktop nav uses `hidden md:flex`, mobile trigger uses `md:hidden`. Never use different breakpoints — causes "ghost menu" bug.
 
@@ -1096,19 +1172,19 @@ Tailwind v4 default breakpoints (no custom config):
 
 ## 18. Z-Index Layer Map
 
-| Token | Value | Element | Location |
-|---|---|---|---|
-| `--z-behind` | -1 | Decorative elements | Hero overlay |
-| `--z-base` | 0 | Default content | All sections |
-| `--z-raised` | 10 | Sticky within section | Reel controls |
-| `--z-dropdown` | 200 | Dropdown menus | (future) |
-| `--z-sticky` | 300 | SiteHeader, StickyCTABar | Fixed headers |
-| `--z-overlay` | 400 | MobileNavSheet overlay, GrainOverlay | Modal backdrop |
-| `--z-modal` | 500 | MobileNavSheet content, Radix Dialog | Sheet panel |
-| `--z-popover` | 600 | Popover content | (future) |
-| `--z-tooltip` | 700 | Tooltips | (future) |
-| `--z-toast` | 800 | Sonner Toaster | Top-right |
-| `--z-max` | 999 | Escape hatches | (future) |
+| Token          | Value | Element                              | Location       |
+| -------------- | ----- | ------------------------------------ | -------------- |
+| `--z-behind`   | -1    | Decorative elements                  | Hero overlay   |
+| `--z-base`     | 0     | Default content                      | All sections   |
+| `--z-raised`   | 10    | Sticky within section                | Reel controls  |
+| `--z-dropdown` | 200   | Dropdown menus                       | (future)       |
+| `--z-sticky`   | 300   | SiteHeader, StickyCTABar             | Fixed headers  |
+| `--z-overlay`  | 400   | MobileNavSheet overlay, GrainOverlay | Modal backdrop |
+| `--z-modal`    | 500   | MobileNavSheet content, Radix Dialog | Sheet panel    |
+| `--z-popover`  | 600   | Popover content                      | (future)       |
+| `--z-tooltip`  | 700   | Tooltips                             | (future)       |
+| `--z-toast`    | 800   | Sonner Toaster                       | Top-right      |
+| `--z-max`      | 999   | Escape hatches                       | (future)       |
 
 **Rule:** Always use the `--z-*` tokens, never raw `z-[999]` values.
 
@@ -1116,23 +1192,23 @@ Tailwind v4 default breakpoints (no custom config):
 
 ## 19. Color Reference (Complete)
 
-| Token | Hex | RGB | Tailwind Class | Usage |
-|---|---|---|---|---|
-| `--color-bg` | `#0a0a0a` | 10,10,10 | `bg-[var(--color-bg)]` | Primary canvas |
-| `--color-bg-darker` | `#050505` | 5,5,5 | `bg-[var(--color-bg-darker)]` | Sticky bar, nav |
-| `--color-bg-card` | `#141414` | 20,20,20 | `bg-[var(--color-bg-card)]` | Cards |
-| `--color-bg-card-hover` | `#1a1a1a` | 26,26,26 | — | Card hover |
-| `--color-fg` | `#f5f5f5` | 245,245,245 | `text-[var(--color-fg)]` | Body text |
-| `--color-fg-dim` | `#c0c0c0` | 192,192,192 | `text-[var(--color-fg-dim)]` | Secondary text |
-| `--color-muted` | `#8a8a8a` | 138,138,138 | `text-[var(--color-muted)]` | Telemetry labels |
-| `--color-accent` | `#FF5400` | 255,84,0 | `bg-[var(--color-accent)]` | Primary CTA, large text |
-| `--color-accent-bright` | `#FF7A33` | 255,122,51 | — | Hover state |
-| `--color-accent-dim` | `#B33A00` | 179,58,0 | — | Scrollbar |
-| `--color-accent-glow` | `rgba(255,84,0,0.45)` | — | — | Pulse glow |
-| `--color-silver` | `#C8C8C8` | 200,200,200 | `bg-[var(--color-silver)]` | Secondary CTA |
-| `--color-silver-dim` | `#5a5a5a` | 90,90,90 | — | Text stroke |
-| `--color-border` | `#1f1f1f` | 31,31,31 | `border-[var(--color-border)]` | Default borders |
-| `--color-border-light` | `#2a2a2a` | 42,42,42 | `border-[var(--color-border-light)]` | Input borders |
+| Token                   | Hex                   | RGB         | Tailwind Class                       | Usage                   |
+| ----------------------- | --------------------- | ----------- | ------------------------------------ | ----------------------- |
+| `--color-bg`            | `#0a0a0a`             | 10,10,10    | `bg-[var(--color-bg)]`               | Primary canvas          |
+| `--color-bg-darker`     | `#050505`             | 5,5,5       | `bg-[var(--color-bg-darker)]`        | Sticky bar, nav         |
+| `--color-bg-card`       | `#141414`             | 20,20,20    | `bg-[var(--color-bg-card)]`          | Cards                   |
+| `--color-bg-card-hover` | `#1a1a1a`             | 26,26,26    | —                                    | Card hover              |
+| `--color-fg`            | `#f5f5f5`             | 245,245,245 | `text-[var(--color-fg)]`             | Body text               |
+| `--color-fg-dim`        | `#c0c0c0`             | 192,192,192 | `text-[var(--color-fg-dim)]`         | Secondary text          |
+| `--color-muted`         | `#8a8a8a`             | 138,138,138 | `text-[var(--color-muted)]`          | Telemetry labels        |
+| `--color-accent`        | `#ff5400`             | 255,84,0    | `bg-[var(--color-accent)]`           | Primary CTA, large text |
+| `--color-accent-bright` | `#ff7a33`             | 255,122,51  | —                                    | Hover state             |
+| `--color-accent-dim`    | `#b33a00`             | 179,58,0    | —                                    | Scrollbar               |
+| `--color-accent-glow`   | `rgba(255,84,0,0.45)` | —           | —                                    | Pulse glow              |
+| `--color-silver`        | `#c8c8c8`             | 200,200,200 | `bg-[var(--color-silver)]`           | Secondary CTA           |
+| `--color-silver-dim`    | `#5a5a5a`             | 90,90,90    | —                                    | Text stroke             |
+| `--color-border`        | `#1f1f1f`             | 31,31,31    | `border-[var(--color-border)]`       | Default borders         |
+| `--color-border-light`  | `#2a2a2a`             | 42,42,42    | `border-[var(--color-border-light)]` | Input borders           |
 
 **Forbidden (enforced by brand-token test):** `#7c3aed`, `#a855f7`, `#8b5cf6`, `#3b82f6`, `#6366f1`, `#fde68a`, `#fcd34d`
 
@@ -1144,7 +1220,7 @@ Tailwind v4 default breakpoints (no custom config):
 
 ```typescript
 interface Program {
-  id: string;              // UUID v4
+  id: string; // UUID v4
   slug: string;
   goal: 'muscle' | 'fat' | 'fitness' | 'athletic' | 'rehab';
   title: string;
@@ -1156,7 +1232,7 @@ interface Program {
   heroKey: string | null;
   priceCents: number | null;
   stripePriceId: string | null;
-  coachId: string | null;  // UUID v4
+  coachId: string | null; // UUID v4
   order: number;
   published: boolean;
   createdAt: Date;
@@ -1189,15 +1265,15 @@ interface Coach {
 
 ```typescript
 interface TrialRequestInput {
-  name: string;             // 2-80 chars
-  email: string;            // valid email, max 160
-  phone: string;            // optional, max 40
+  name: string; // 2-80 chars
+  email: string; // valid email, max 160
+  phone: string; // optional, max 40
   goal: 'muscle' | 'fat' | 'fitness' | 'athletic' | 'rehab';
   preferredTime: 'early' | 'mid' | 'evening' | 'weekend';
-  preferredCoachId: string | null;  // UUID v4
-  notes: string;            // optional, max 500
-  consent: boolean;         // must be true
-  company_website: string;  // honeypot — must be empty
+  preferredCoachId: string | null; // UUID v4
+  notes: string; // optional, max 500
+  consent: boolean; // must be true
+  company_website: string; // honeypot — must be empty
 }
 ```
 
@@ -1209,7 +1285,7 @@ interface TrialRequestResponse {
   code: 'SUCCESS' | 'VALIDATION' | 'RATE_LIMITED' | 'SPAM_DETECTED' | 'DUPLICATE' | 'INTERNAL';
   message: string;
   requestId: string | null;
-  field?: string | null;  // M4 fix: field name for validation errors (from Zod issues[0].path[0])
+  field?: string | null; // M4 fix: field name for validation errors (from Zod issues[0].path[0])
 }
 ```
 
@@ -1227,8 +1303,8 @@ interface CheckoutRequest {
 ```typescript
 interface AssetGenerationRequest {
   type: 'coach_portrait' | 'program_hero' | 'story_before' | 'story_after';
-  entitySlug: string;       // 1-80 chars
-  promptOverride?: string;  // max 500
+  entitySlug: string; // 1-80 chars
+  promptOverride?: string; // max 500
 }
 ```
 
@@ -1238,39 +1314,39 @@ interface AssetGenerationRequest {
 
 ### Appendix A: ADRs
 
-| ADR | Decision | File |
-|---|---|---|
-| 001 | 5-Layer Golden Rule Architecture | `docs/adr/001-5-layer-architecture.md` |
-| 002 | CSP `'unsafe-inline'` for Styles — NO `'unsafe-eval'` (H1 fix) | `docs/adr/002-csp-unsafe-inline.md` |
-| 003 | Auth.js v5 Beta Pin + JWT | `docs/adr/003-authjs-v5-beta-pin.md` |
-| 004 | Drizzle ORM over Prisma | `docs/adr/004-drizzle-over-prisma.md` |
-| 005 | Inngest over BullMQ | `docs/adr/005-inngest-over-bullmq.md` |
-| 006 | Replicate for AI Assets | `docs/adr/006-replicate-for-ai-assets.md` |
-| 007 | Stripe Checkout over Embedded | `docs/adr/007-stripe-checkout-over-embedded.md` |
-| 008 | Image Ken Burns over MP4 | `docs/adr/008-image-ken-burns-over-mp4.md` |
-| 009 | English-Only for v1 | `docs/adr/009-english-only-v1.md` |
-| 010 | Dark-Mode Only for v1 | `docs/adr/010-dark-mode-only-v1.md` |
+| ADR | Decision                                                       | File                                            |
+| --- | -------------------------------------------------------------- | ----------------------------------------------- |
+| 001 | 5-Layer Golden Rule Architecture                               | `docs/adr/001-5-layer-architecture.md`          |
+| 002 | CSP `'unsafe-inline'` for Styles — NO `'unsafe-eval'` (H1 fix) | `docs/adr/002-csp-unsafe-inline.md`             |
+| 003 | Auth.js v5 Beta Pin + JWT                                      | `docs/adr/003-authjs-v5-beta-pin.md`            |
+| 004 | Drizzle ORM over Prisma                                        | `docs/adr/004-drizzle-over-prisma.md`           |
+| 005 | Inngest over BullMQ                                            | `docs/adr/005-inngest-over-bullmq.md`           |
+| 006 | Replicate for AI Assets                                        | `docs/adr/006-replicate-for-ai-assets.md`       |
+| 007 | Stripe Checkout over Embedded                                  | `docs/adr/007-stripe-checkout-over-embedded.md` |
+| 008 | Image Ken Burns over MP4                                       | `docs/adr/008-image-ken-burns-over-mp4.md`      |
+| 009 | English-Only for v1                                            | `docs/adr/009-english-only-v1.md`               |
+| 010 | Dark-Mode Only for v1                                          | `docs/adr/010-dark-mode-only-v1.md`             |
 
 ### Appendix B: API Costs
 
-| Service | Operation | Cost |
-|---|---|---|
-| Replicate | SDXL image generation | ~$0.01 per image |
-| Stripe | Checkout Session | 2.9% + $0.30 per transaction |
-| Inngest | Function run | Free tier: 10K/month |
-| Upstash | Redis command | Free tier: 10K/day |
-| Neon | Database | Free tier: 0.5 GB |
-| Cloudflare R2 | Storage | Free tier: 10 GB |
-| Resend | Email | Free tier: 100/day |
-| Vercel | Hosting | Free tier: 100GB bandwidth |
+| Service       | Operation             | Cost                         |
+| ------------- | --------------------- | ---------------------------- |
+| Replicate     | SDXL image generation | ~$0.01 per image             |
+| Stripe        | Checkout Session      | 2.9% + $0.30 per transaction |
+| Inngest       | Function run          | Free tier: 10K/month         |
+| Upstash       | Redis command         | Free tier: 10K/day           |
+| Neon          | Database              | Free tier: 0.5 GB            |
+| Cloudflare R2 | Storage               | Free tier: 10 GB             |
+| Resend        | Email                 | Free tier: 100/day           |
+| Vercel        | Hosting               | Free tier: 100GB bandwidth   |
 
 ### Appendix C: Audit History
 
-| Audit | Date | Findings | Fixes | Tests |
-|---|---|---|---|---|
-| `pnpm audit` | Phase 10 | 2 moderate (esbuild, postcss) | pnpm.overrides | 0 vulnerabilities |
-| OWASP Top 10 | Phase 10 | 4 P1 + 4 P2 + 5 P3 | All P1+P2 fixed | — |
-| WCAG AAA | Phase 10 | 3 P1 + 2 P2 + 5 P3 | All P1 fixed | 19 brand-token tests |
+| Audit                            | Date           | Findings                                   | Fixes                                                                     | Tests                              |
+| -------------------------------- | -------------- | ------------------------------------------ | ------------------------------------------------------------------------- | ---------------------------------- |
+| `pnpm audit`                     | Phase 10       | 2 moderate (esbuild, postcss)              | pnpm.overrides                                                            | 0 vulnerabilities                  |
+| OWASP Top 10                     | Phase 10       | 4 P1 + 4 P2 + 5 P3                         | All P1+P2 fixed                                                           | —                                  |
+| WCAG AAA                         | Phase 10       | 3 P1 + 2 P2 + 5 P3                         | All P1 fixed                                                              | 19 brand-token tests               |
 | **Code Review & Security Audit** | **2026-07-03** | **3 Critical + 4 High + 8 Medium + 7 Low** | **11 code-fixable items applied via TDD; 5 operational items documented** | **154→183 tests (+29 regression)** |
 
 **Post-remediation quality gate:** `pnpm typecheck` ✅ | `pnpm lint` ✅ (0 warnings) | `pnpm test` 183/183 ✅ | `pnpm audit` 0 vulns ✅
@@ -1286,6 +1362,7 @@ IRONFORGE_LIVE_URL=https://yourdomain.com bash scripts/smoke-test.sh
 ```
 
 **What it checks (35+ assertions):**
+
 - Home page HTTP 200 + all 6 sections present + JSON-LD
 - robots.txt + sitemap.xml + manifest.webmanifest + icon.svg
 - API routes (programs, coaches, stories) return correct counts
@@ -1295,6 +1372,7 @@ IRONFORGE_LIVE_URL=https://yourdomain.com bash scripts/smoke-test.sh
 - Security headers (CSP, HSTS, X-Frame-Options, nosniff)
 
 **What live-site testing catches that CI cannot:**
+
 - Real CDN behavior (image optimization, edge caching)
 - Real SSL/TLS configuration
 - Real DNS resolution
@@ -1310,14 +1388,14 @@ IRONFORGE_LIVE_URL=https://yourdomain.com bash scripts/smoke-test.sh
 
 These items were identified in the code audit but require deployment environment access — they cannot be fixed in code:
 
-| # | Item | Action Required | Impact if Unfixed |
-|---|------|-----------------|-------------------|
-| 1 | **Deploy with production build** (C1) | Use `docker compose -f docker-compose.prod.yml up -d` (NOT `pnpm dev`). The Dockerfile is correct; the deployment pipeline must use it. The new `/api/health` route makes the Dockerfile HEALTHCHECK functional. | Site runs in dev mode (5-10× slower, source maps exposed, TTFB 350ms vs <100ms) |
-| 2 | **Set `NEXT_PUBLIC_APP_URL`** (C2) | Set to `https://your-domain.com` in the deployment environment. | Sitemap + robots publish `localhost` URLs; Google indexes wrong URLs |
-| 3 | **Configure Stripe** (H3) | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` + create 4 products/prices + update `MEMBERSHIP_TIERS`/`DROP_IN_PACK` in `data.ts`. | Checkout returns 503 NOT_CONFIGURED; memberships non-functional |
-| 4 | **Apply migration 0002** | Run `pnpm drizzle:migrate` in the deployment environment. | `published`/`order` columns remain nullable at DB level (queries still work, but type safety not enforced at DB level) |
-| 5 | **Cloudflare robots.txt** (M6) | Move `Disallow: /admin/` into the Cloudflare-managed block, or disable CF managed robots. | Some crawlers may ignore the app's `Disallow: /admin/` directive |
+| #   | Item                                  | Action Required                                                                                                                                                                                                  | Impact if Unfixed                                                                                                      |
+| --- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Deploy with production build** (C1) | Use `docker compose -f docker-compose.prod.yml up -d` (NOT `pnpm dev`). The Dockerfile is correct; the deployment pipeline must use it. The new `/api/health` route makes the Dockerfile HEALTHCHECK functional. | Site runs in dev mode (5-10× slower, source maps exposed, TTFB 350ms vs <100ms)                                        |
+| 2   | **Set `NEXT_PUBLIC_APP_URL`** (C2)    | Set to `https://your-domain.com` in the deployment environment.                                                                                                                                                  | Sitemap + robots publish `localhost` URLs; Google indexes wrong URLs                                                   |
+| 3   | **Configure Stripe** (H3)             | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` + create 4 products/prices + update `MEMBERSHIP_TIERS`/`DROP_IN_PACK` in `data.ts`.                                       | Checkout returns 503 NOT_CONFIGURED; memberships non-functional                                                        |
+| 4   | **Apply migration 0002**              | Run `pnpm drizzle:migrate` in the deployment environment.                                                                                                                                                        | `published`/`order` columns remain nullable at DB level (queries still work, but type safety not enforced at DB level) |
+| 5   | **Cloudflare robots.txt** (M6)        | Move `Disallow: /admin/` into the Cloudflare-managed block, or disable CF managed robots.                                                                                                                        | Some crawlers may ignore the app's `Disallow: /admin/` directive                                                       |
 
 ---
 
-*End of IRONFORGE SKILL.md v1.1.0. Produced by following the Six-Phase Distillation Process from the `to-distill-project-into-skill` meta-skill. Last updated 2026-07-03 (post-audit remediation: 3 Critical + 4 High + 8 Medium findings addressed; 183/183 tests passing; 0 vulnerabilities).*
+_End of IRONFORGE SKILL.md v1.1.1. Produced by following the Six-Phase Distillation Process from the `to-distill-project-into-skill` meta-skill. Last updated 2026-07-03 (post-audit remediation: 3 Critical + 4 High + 8 Medium findings addressed; 183/183 tests passing; 0 vulnerabilities; v1.1.1 documentation accuracy patch: 11 findings corrected)._

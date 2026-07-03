@@ -2,6 +2,10 @@ have you actually read the content of the relevant skills included in the 'git c
 
 ---
 
+please meticulously plan to update @fitness-studio_SKILL.md with medium and minor gaps/issues (leave out the critical finding about `next.config.ts`). first meticulously plan to re-evaluate and re-validate the identified misalignment issues against the codebase to identify the root causes and the optimal fixes (either with the code or the documentation), then meticulously plan to create a remediation plan with a detailed ToDo list to apply the validated optimal fixes for the code or the SKILL.md file. refer to skill 'to-distill-project-into-skill' on the corrent structure and methodology for the project skill distillation.
+
+---
+
 Awesome meticulous job so far. Please keep up the good work. Now, please meticulously create a tar archive of the entire (remediated) codebase, excluding the `node_modules` , `.next` and `.git` folders, so I can download and use it to refresh my GitHub repo.
 
 Awesome meticulous job so far. Please keep up the good work. Now, please meticulously create an updated v2 tar archive of the entire (remediated) codebase, including the updated docs and SKILL.md but excluding the `node_modules` , `.next` , `skills` and `.git` folders, so I can download and use it to refresh my GitHub repo.
