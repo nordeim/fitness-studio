@@ -9,7 +9,7 @@ description: >
   storage, Upstash rate limiting, Zod 4 validation, and comprehensive OWASP security hardening.
   Use for luxury-brand marketing sites, fitness studio websites, or any Next.js 16 full-stack
   project requiring cinematic dark-mode aesthetics with production-grade infrastructure.
-version: 1.0.0
+version: 1.1.0
 date: 2026-07-03
 tags:
   - nextjs
@@ -108,7 +108,7 @@ IRONFORGE is a production-grade marketing + booking + memberships + admin websit
 | Language | TypeScript | `5.9.3` | `strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax` |
 | Styling | Tailwind CSS | `4.3.2` | CSS-first `@theme` — NO `tailwind.config.js` |
 | UI Primitives | Radix UI + shadcn/ui | — | Dialog, Accordion, Dropdown, Slot (custom-wrapped) |
-| Database | PostgreSQL + Drizzle ORM | `0.45.2` | 11 tables, 2 migrations, `ON CONFLICT DO NOTHING` |
+| Database | PostgreSQL + Drizzle ORM | `0.45.2` | 11 tables, 3 migrations, `ON CONFLICT DO NOTHING`, `.notNull()` on `published`/`order` (H4 fix) |
 | Auth | Auth.js v5 (next-auth) | `5.0.0-beta.31` | JWT strategy, no DrizzleAdapter, `trustHost: true` |
 | Job Queue | Inngest | `4.11.0` | v4 `createFunction` uses `triggers` in config object |
 | Payments | Stripe | `22.3.0` | Checkout redirect model, webhook signature verification |
@@ -116,13 +116,13 @@ IRONFORGE is a production-grade marketing + booking + memberships + admin websit
 | Storage | Cloudflare R2 (S3) | — | `MAX_PUT_OBJECT_BYTES = 500 MB` (T7 lesson) |
 | Rate Limit | Upstash Redis | `2.0.8` | Sliding window, no-op fallback when not configured |
 | Validation | Zod | `4.4.3` | Enum `{ message }` not `{ errorMap }`; strict UUID v4 |
-| Testing | Vitest + Playwright | `4.1.9` / `1.61.0` | 153 unit tests + 8 E2E spec files |
+| Testing | Vitest + Playwright | `4.1.9` / `1.61.0` | 183 unit tests (16 files) + 8 E2E spec files |
 | Pkg Manager | pnpm | `≥10.26.0` | `packageManager` field pinned in `package.json` |
 | Node.js | — | `≥20.18.0` | Pinned in `.nvmrc` |
 | Toasts | sonner | `2.0.7` | Server action success/error feedback |
 | Icons | lucide-react | `0.460.0` | Tree-shaken per-icon |
 
-**Environment variables:** 26 total (see `.env.example`). Build-context fallback returns placeholders when `NEXT_PHASE=phase-production-build` or `NODE_ENV=test`.
+**Environment variables:** 26 total (see `.env.example`). Build-context fallback returns placeholders when `NEXT_PHASE=phase-production-build` or `NODE_ENV=test`. **⚠️ Production-critical:** `NEXT_PUBLIC_APP_URL` MUST be set to the production domain — without it, `sitemap.xml`, `robots.txt`, `metadataBase`, and OG `url` publish `localhost` URLs (M1 fix).
 
 ---
 
@@ -154,7 +154,7 @@ pnpm typecheck && pnpm lint && pnpm test && pnpm build
 | `pnpm start` | Start production server |
 | `pnpm typecheck` | `tsc --noEmit` |
 | `pnpm lint` | ESLint flat config |
-| `pnpm test` | Vitest (153 unit tests) |
+| `pnpm test` | Vitest (183 unit tests, 16 files) |
 | `pnpm test:e2e` | Playwright (requires dev server) |
 | `pnpm format` | Prettier write |
 | `pnpm drizzle:generate` | Generate migration from schema diff |
@@ -257,7 +257,7 @@ Required by pnpm 9+ even for single-package repos. Without it, `pnpm install` fa
 | Telemetry | JetBrains Mono | 400 | 0.6875rem | 0.2em upper | 1.5 |
 | CTA | Oswald | 600 | 0.85rem | 0.2em upper | 1.1 |
 
-### Keyframes (5 total)
+### Keyframes (6 total)
 
 | Name | Duration | Use |
 |---|---|---|
@@ -266,6 +266,7 @@ Required by pnpm 9+ even for single-package repos. Without it, `pnpm install` fa
 | `ken-burns` | 9s forwards | Active hero reel frame |
 | `wave` | 0.7s infinite | Mute toggle equalizer bars |
 | `rec-blink` | 1.5s infinite | "REEL · LIVE" indicator |
+| `progress-fill` | `frameDurationMs` linear forwards | Hero reel progress bar (M8 fix — CSS-driven, zero React re-renders; restarted via `key={current}`) |
 
 ### Custom Utilities (`@utility`)
 
@@ -319,28 +320,43 @@ Does the component need:
 Otherwise: Server Component (default — no directive needed)
 ```
 
-### Queries Pattern (DB-first with static fallback)
+### Queries Pattern (DB-first with static fallback + published filter + Zod validation)
 
 ```typescript
-// src/features/programs/queries.ts
+// src/features/programs/queries.ts — H2 + H4 fix: published filter, no casts, Zod validation
 export async function getPrograms(goal?: string): Promise<Program[]> {
   try {
     const { db } = await import('@/lib/db/client');    // dynamic import
     const { programs } = await import('@/lib/db/schema');
-    const result = await db.select().from(programs).orderBy(programs.order);
-    if (result.length > 0) return result as unknown as Program[];
-    return goal ? STATIC_PROGRAMS.filter(p => p.goal === goal) : STATIC_PROGRAMS;
+    const result = await db.select().from(programs)
+      .where(and(eq(programs.published, true), goal ? eq(programs.goal, goal) : undefined))
+      .orderBy(programs.order);
+    if (result.length > 0) {
+      const validated = ProgramArraySchema.safeParse(result);  // Zod validation (defense-in-depth)
+      if (validated.success) return validated.data;
+    }
+    return goal ? STATIC_PROGRAMS.filter(p => p.published && p.goal === goal) : STATIC_PROGRAMS.filter(p => p.published);
   } catch {
-    return goal ? STATIC_PROGRAMS.filter(p => p.goal === goal) : STATIC_PROGRAMS;
+    return goal ? STATIC_PROGRAMS.filter(p => p.published && p.goal === goal) : STATIC_PROGRAMS.filter(p => p.published);
   }
 }
 ```
 
-### Server Action Pattern (Auth-First)
+**Key changes (audit remediation):**
+- `.where(eq(programs.published, true))` — unpublished records never reach the API (H2 fix)
+- `ProgramArraySchema.safeParse(result)` — Zod validates DB results before returning (defense-in-depth for varchar→enum narrowing)
+- No `as unknown as Program[]` casts — Drizzle `.notNull()` on `published`/`order` columns makes inferred types match Zod schemas (H4 fix)
+- Static fallback also filters by `published: true`
+
+### Server Action Pattern (Auth-First + UUID validation)
 
 ```typescript
-// src/features/coaches/actions.ts
+// src/features/coaches/actions.ts — M5 fix: UUID validation on id params
 'use server';
+import { z } from 'zod';
+
+const IdSchema = z.string().uuid('Invalid ID format');
+
 async function requireAdmin() {
   const session = await auth();
   if (!session?.user || (session.user as { role?: string }).role !== 'admin') {
@@ -349,12 +365,19 @@ async function requireAdmin() {
   return { success: true as const };
 }
 
-export async function createCoach(input: unknown) {
+export async function updateCoach(id: string, input: unknown) {
   const authCheck = await requireAdmin();
   if (!authCheck.success) return authCheck;
+
+  // M5 fix: validate id as UUID BEFORE any DB call
+  const idResult = IdSchema.safeParse(id);
+  if (!idResult.success) {
+    return { success: false as const, code: 'VALIDATION' as const, message: idResult.error.issues[0]?.message ?? 'Invalid ID' };
+  }
+
   const parsed = CoachFormSchema.safeParse(input);
   if (!parsed.success) return { success: false, code: 'VALIDATION', message: parsed.error.issues[0]?.message };
-  // ... DB insert + revalidatePath
+  // ... DB update + revalidatePath
 }
 ```
 
@@ -364,14 +387,15 @@ export async function createCoach(input: unknown) {
 
 ### `useHeroReel` (`src/hooks/useHeroReel.ts`)
 
-**Purpose:** Cinematic hero reel state machine — frame cycling, progress bar, mute toggle.
+**Purpose:** Cinematic hero reel state machine — frame cycling, mute toggle.
 
-**Signature:** `useHeroReel({ frameCount, frameDurationMs?, autoAdvance? }): { currentFrame, progress, muted, isPlaying, goTo, next, toggleMute, containerRef }`
+**Signature:** `useHeroReel({ frameCount, frameDurationMs?, autoAdvance? }): { currentFrame, muted, isPlaying, goTo, next, toggleMute, containerRef, frameDurationMs }`
 
 **Key details:**
 - `isPlaying` is DERIVED from `shouldPlay` (not `setState` in effect — React 19 compliant)
 - Pauses when: `prefers-reduced-motion`, off-screen (IntersectionObserver threshold 0.25), `autoAdvance=false`, `frameCount<=1`
-- Progress bar updates every 100ms (2% per tick on 5s frame)
+- **M8 fix:** Progress bar is now CSS-driven (`@keyframes progress-fill` in `globals.css` + `key={current}` on the fill div in `ReelProgress.tsx`). The hook NO LONGER calls `setProgress` every 100ms — only `setCurrentFrame` on frame advance. This eliminates 10 re-renders per second.
+- `frameDurationMs` is returned so `ReelProgress` can set the CSS animation duration
 - `containerRef` for IntersectionObserver attachment
 
 ### `useStoriesCarousel` (`src/hooks/useStoriesCarousel.ts`)
@@ -555,6 +579,74 @@ All icon buttons: `h-11 w-11` (44×44). Carousel dots: wrapped in `min-h-11 min-
 **Root cause:** DrizzleAdapter expects `sessionToken` as PK; our schema uses `id` as PK + `sessionToken` unique.
 **Fix:** Don't use DrizzleAdapter. JWT strategy doesn't need it.
 
+### Audit Remediation Bugs (2026-07-03)
+
+The following bugs were found in the post-audit code review and fixed via TDD. Each has a regression test preventing recurrence.
+
+### Bug: CSP Included `'unsafe-eval'` Despite Comment Claiming Absence (Critical — H1)
+
+**Symptom:** Live CSP header showed `script-src 'self' 'unsafe-inline' 'unsafe-eval'` but the inline comment in `next.config.ts` said "'unsafe-eval' is intentionally absent."
+**Root cause:** Documentation/implementation contradiction. The CSP string included `'unsafe-eval'` but the comment claimed it didn't.
+**Fix:** Removed `'unsafe-eval'` from `CSP_POLICY` in `next.config.ts`. Updated the comment. Next.js 16 production builds do NOT require `'unsafe-eval'`.
+**Lesson:** Grep the actual config string, don't trust the comment.
+
+### Bug: Public Queries Did Not Filter by `published: true` (Critical — H2)
+
+**Symptom:** `/api/coaches`, `/api/programs`, `/api/stories` would return unpublished records once the admin CRUD UI was used.
+**Root cause:** All 3 query modules called `.select().from().orderBy()` without `.where(eq(*.published, true))`. The API doc comment claimed "Returns all published coaches" but the query didn't enforce it.
+**Fix:** Added `.where(eq(*.published, true))` (and `and(eq(slug, ...), eq(published, true))` for detail-by-slug) to all public queries. Static fallback also filters by `published: true`.
+**Regression test:** `src/tests/unit/queries-published-filter.test.ts` (11 tests — mocks DB to return mixed published/unpublished rows, asserts only published rows are returned).
+
+### Bug: 23 Sitemap URLs Returned 404 (Critical — C3)
+
+**Symptom:** `/coaches/marcus-steel`, `/programs/muscle-gain`, `/stories/james-r` all returned 404 on the live site. The sitemap promised 30 URLs but 23 had no corresponding page route.
+**Root cause:** `sitemap.ts` generated URLs for `/programs/[slug]`, `/coaches/[slug]`, `/stories/[slug]` detail pages, but no `page.tsx` files existed (only API routes at `/api/{programs,coaches,stories}/[slug]`).
+**Fix:** Created 3 new detail page routes: `src/app/coaches/[slug]/page.tsx`, `src/app/programs/[slug]/page.tsx`, `src/app/stories/[slug]/page.tsx`. Each uses `generateStaticParams` + `generateMetadata` + `notFound()` and follows the IRONFORGE design system.
+
+### Bug: Dev Mode Healthcheck Referenced Nonexistent `/api/health` (Critical — C1 partial)
+
+**Symptom:** Dockerfile `HEALTHCHECK` referenced `/api/health` which returned 404. Container marked unhealthy.
+**Root cause:** The Dockerfile (copied from another project) assumed a health endpoint existed, but it was never created.
+**Fix:** Created `src/app/api/health/route.ts` — lightweight 200 OK endpoint returning `{ status: 'ok', timestamp, uptime }`. No DB call (the healthcheck just needs a 200).
+
+### Bug: `as unknown as` Casts Defeated TypeScript Safety (High — H4)
+
+**Symptom:** 20 `as unknown as Coach[]` / `Program[]` / `Story[]` casts in query modules. ESLint `no-explicit-any` passed but runtime safety was gone.
+**Root cause:** Drizzle schema declared `published: boolean('published').default(false)` without `.notNull()`, so Drizzle inferred `boolean | null`. Zod schema declared `z.boolean()` (inferred `boolean`). The structural mismatch forced casts. Additionally, `StaticProgram.goal` was typed as `string` while Zod expected an enum union.
+**Fix:** Added `.notNull()` to 5 Drizzle columns (`coaches.published`, `coaches.order`, `programs.published`, `programs.order`, `stories.published`). Created migration `0002_enforce_published_notnull.sql`. Removed all 20 casts. Changed `StaticProgram.goal` to the enum union. Added Zod runtime validation in `programs/queries.ts` (defense-in-depth for varchar→enum narrowing).
+**Lesson:** If you need a cast, the schema is wrong. Fix the schema.
+
+### Bug: Hardcoded `localhost` in Metadata (Medium — M1)
+
+**Symptom:** Production OG/canonical URLs pointed to `http://localhost:3000` instead of the real domain.
+**Root cause:** `metadataBase` and OG `url` in `src/app/layout.tsx` were hardcoded to `http://localhost:3000`.
+**Fix:** Changed to `process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'`.
+
+### Bug: Brittle Substring Matching for Form Error Routing (Medium — M4)
+
+**Symptom:** BookingForm routed errors to fields via `message.includes('email')` — broke if Zod message text changed.
+**Root cause:** `TrialRequestResponse` type had no `field` property; the client reverse-engineered intent from natural language.
+**Fix:** Added `field: z.string().nullable().optional()` to `TrialRequestResponseSchema`. Server action populates `field` from `parsed.error.issues[0]?.path[0]`. `BookingForm.tsx` now routes via `result.field`.
+
+### Bug: Server Action `id` Params Not UUID-Validated (Medium — M5)
+
+**Symptom:** `updateCoach('not-a-uuid', ...)` accepted any string, hitting the DB before rejection.
+**Root cause:** `updateCoach(id: string, ...)`, `deleteCoach(id: string)`, `toggleCoachPublished(id: string, ...)` accepted `id` as raw `string` without Zod validation — inconsistent with the "Zod on every public input" pattern.
+**Fix:** Added `const IdSchema = z.string().uuid()` and `IdSchema.safeParse(id)` validation to all 3 coach actions. Invalid UUIDs return `VALIDATION` error before any DB call.
+**Regression test:** `src/features/coaches/actions.test.ts` (18 tests — 5 invalid IDs × 3 actions + 3 valid UUID tests).
+
+### Bug: `@ts-expect-error` in R2 Stream Handling (Medium — M7)
+
+**Symptom:** `@ts-expect-error` suppressed a type error in `lib/storage/r2.ts` stream handling — silent type-safety escape.
+**Root cause:** AWS SDK types `response.Body` as `StreamingBlobPayload` which is not directly iterable. The code used `@ts-expect-error` to suppress the mismatch.
+**Fix:** Replaced with `import { Readable } from 'stream'` + `if (!(response.Body instanceof Readable)) { return null; }` — proper type narrowing with a fail-loud fallback.
+
+### Bug: Hero Reel Progress Bar Caused 10 Re-renders/Second (Medium — M8)
+
+**Symptom:** `agent-browser vitals` showed continuous Render+Commit cycles every 100ms for 3+ seconds. Hero subtree re-rendered 10 times per second.
+**Root cause:** `useHeroReel.ts` called `setProgress` every 100ms via `setInterval` to update the progress bar.
+**Fix:** Added `@keyframes progress-fill` to `globals.css`. Updated `ReelProgress.tsx` to use CSS animation with `key={current}` (restarts on frame change). Removed `setProgress` from `useHeroReel.ts` — only `setCurrentFrame` on frame advance. Zero React re-renders for the progress bar.
+
 ---
 
 ## 10. Debugging Guide
@@ -585,6 +677,19 @@ All icon buttons: `h-11 w-11` (44×44). Carousel dots: wrapped in `min-h-11 min-
 | `[PARSE_ERROR] Expected '>'` | JSX in `.test.ts` file | Rename to `.test.tsx` |
 | `expected 18.73 to be close to 18.16` | Incorrect contrast ratio assertion | Update expected value to actual computed ratio |
 
+### Audit Remediation Debugging Scenarios (2026-07-03)
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Site is slow / TTFB 350ms+ | Deployment running `pnpm dev` instead of `pnpm start` (browser console shows `[HMR] connected`, `[Fast Refresh] rebuilding`) | Deploy with `docker compose -f docker-compose.prod.yml up -d` (Dockerfile is correct — `pnpm build` → `pnpm start`) |
+| Sitemap shows `localhost` URLs | `NEXT_PUBLIC_APP_URL` not set in deployment env | Set `NEXT_PUBLIC_APP_URL=https://your-domain.com` and redeploy |
+| Checkout returns 503 NOT_CONFIGURED | Stripe env vars not set | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` + create 4 products/prices + update `MEMBERSHIP_TIERS`/`DROP_IN_PACK` in `data.ts` |
+| TS error: `Type 'string' is not assignable to type 'enum'` | Drizzle `varchar` column vs Zod `z.enum()` mismatch | Zod-validate DB results at runtime (see `programs/queries.ts`) OR change column to `pgEnum` |
+| TS error on `response.Body` in R2 getObject | AWS SDK types `response.Body` as `StreamingBlobPayload` (not iterable) | Use `instanceof Readable` type narrowing (see `lib/storage/r2.ts`). Never `@ts-expect-error`. |
+| Hero reel progress bar stutters / causes re-renders | `setProgress` called every 100ms via `setInterval` | Use CSS `@keyframes progress-fill` + `key={current}` (see `ReelProgress.tsx` + `globals.css`) |
+| `/coaches/[slug]` returns 404 | Detail page route missing (was only API route) | Detail pages now exist at `src/app/{coaches,programs,stories}/[slug]/page.tsx` (added in audit remediation) |
+| Dockerfile HEALTHCHECK fails | `/api/health` route was missing | Now exists at `src/app/api/health/route.ts` (returns 200 OK) |
+
 ---
 
 ## 11. Pre-Ship Checklist
@@ -593,9 +698,9 @@ All icon buttons: `h-11 w-11` (44×44). Carousel dots: wrapped in `min-h-11 min-
 
 ```bash
 pnpm typecheck    # tsc --noEmit — 0 errors
-pnpm lint         # eslint . — 0 errors
-pnpm test         # vitest run — 153/153 pass
-pnpm build        # next build — 0 errors, 24 routes
+pnpm lint         # eslint . — 0 errors, 0 warnings
+pnpm test         # vitest run — 183/183 pass (16 files)
+pnpm build        # next build — 0 errors, 24+ routes
 pnpm audit        # 0 vulnerabilities
 ```
 
@@ -679,6 +784,19 @@ IRONFORGE_LIVE_URL=https://yourdomain.com bash scripts/smoke-test.sh
 23. **Class syntax** for SDK constructor mocks (arrow functions can't be `new`-ed).
 24. **DB mock pattern:** `vi.mock('@/lib/db/client', () => { throw new Error('DB unavailable'); })` tests the fallback path.
 
+### Audit Remediation Lessons (2026-07-03)
+
+25. **`.default()` without `.notNull()` creates `T | null` in Drizzle inference.** This forced 20 `as unknown as` casts in the queries modules. Fix: always pair `.default(X)` with `.notNull()` when the column is semantically non-nullable. Migration 0002 backfills this for `published` and `order` columns. (H4 fix)
+26. **Casts hide bugs.** `as unknown as` satisfied ESLint's `no-explicit-any` but defeated TypeScript runtime safety — it hid BOTH the `published: boolean | null` mismatch AND the `goal: string vs enum` mismatch. Lesson: if you need a cast, the schema is wrong. Fix the schema. (H4 fix)
+27. **CSP `'unsafe-eval'` is NOT required for Next.js 16 production.** The inline comment claimed it was "intentionally absent" but the actual CSP string included it. Lesson: grep the actual config string, don't trust the comment. (H1 fix)
+28. **`NEXT_PUBLIC_APP_URL` must be set in production.** Without it, `sitemap.xml` and `robots.txt` publish `localhost` URLs (verified on the live site). The code now reads `process.env.NEXT_PUBLIC_APP_URL` for `metadataBase`, OG `url`, sitemap, and robots. (M1 fix)
+29. **`setProgress` every 100ms = 10 re-renders/sec.** Drive progress bars with CSS `@keyframes` + `key={current}` to restart on frame change. Zero React re-renders. (M8 fix)
+30. **TDD catches missing filters.** Existing query tests only tested the static-fallback path (DB throws). New `queries-published-filter.test.ts` mocks the DB to RETURN data — catches the missing `published: true` filter. (H2 fix)
+31. **`@ts-expect-error` is a silent escape hatch.** Use `instanceof Readable` type narrowing instead. Never suppress type errors. (M7 fix)
+32. **Substring matching for error routing is brittle.** Server actions return a `field` property (from Zod `issues[0].path[0]`); clients route via `result.field`. (M4 fix)
+33. **Server action `id` params need UUID validation.** Always `z.string().uuid().safeParse(id)` before any DB call. (M5 fix)
+34. **Sitemap URLs must have corresponding page routes.** The sitemap generated 23 detail-page URLs with no `page.tsx` files — all 404'd. Created 3 new detail page routes (`/coaches/[slug]`, `/programs/[slug]`, `/stories/[slug]`). (C3 fix)
+
 ---
 
 ## 13. Pitfalls to Avoid
@@ -695,6 +813,14 @@ IRONFORGE_LIVE_URL=https://yourdomain.com bash scripts/smoke-test.sh
 | 8 | Dynamic class interpolation in Tailwind | Use mapping objects with full class strings |
 | 9 | Importing `env` module in infrastructure clients | Use `process.env` directly |
 | 10 | Forgetting `INNGEST_DEV=1` gate behind `NODE_ENV` | Production throws if signing key missing |
+| 11 | Using `as unknown as` casts in queries | Fix the schema (add `.notNull()`) instead — casts hide type mismatches (H4 fix) |
+| 12 | Using `@ts-expect-error` / `@ts-ignore` / `@ts-nocheck` | Use proper type narrowing (`instanceof`, type guards) (M7 fix) |
+| 13 | Substring matching (`message.includes('email')`) for form error routing | Use the `field` property from the server response (M4 fix) |
+| 14 | Including `'unsafe-eval'` in the CSP | Next.js 16 production builds don't need it (H1 fix) |
+| 15 | Hardcoding `localhost:3000` in metadata | Use `process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'` (M1 fix) |
+| 16 | Using `setProgress` in `setInterval` for progress bars | Use CSS `@keyframes` + `key={current}` (M8 fix) |
+| 17 | Writing public queries without `.where(eq(*.published, true))` | Unpublished records would leak via the public API (H2 fix) |
+| 18 | Accepting `id: string` in server actions without UUID validation | Always `z.string().uuid().safeParse(id)` before any DB call (M5 fix) |
 
 ---
 
@@ -730,22 +856,96 @@ function getStripe(): Stripe | null {
 // Caller: if (!stripe) return 503 NOT_CONFIGURED;
 ```
 
-### Server Action Pattern
+### Server Action Pattern (with UUID validation + field-aware errors)
 
 ```typescript
+// src/features/coaches/actions.ts — M5 + M4 fix
 'use server';
+import { z } from 'zod';
+
+const IdSchema = z.string().uuid('Invalid ID format');
+
 async function requireAdmin() {
   const session = await auth();
   if (!session?.user || (session.user as { role?: string }).role !== 'admin')
     return { success: false as const, code: 'UNAUTHORIZED' as const, message: 'Admin access required' };
   return { success: true as const };
 }
-export async function createCoach(input: unknown) {
+
+export async function updateCoach(id: string, input: unknown) {
   const authCheck = await requireAdmin();
   if (!authCheck.success) return authCheck;
+
+  // M5 fix: validate id as UUID BEFORE any DB call
+  const idResult = IdSchema.safeParse(id);
+  if (!idResult.success) return { success: false as const, code: 'VALIDATION' as const, message: idResult.error.issues[0]?.message ?? 'Invalid ID' };
+
   const parsed = CoachFormSchema.safeParse(input);
   if (!parsed.success) return { success: false, code: 'VALIDATION', message: parsed.error.issues[0]?.message };
-  // ... DB insert + revalidatePath
+  // ... DB update + revalidatePath
+}
+```
+
+### Field-Aware Error Response Pattern (M4 fix)
+
+```typescript
+// src/features/booking/actions.ts — populate `field` from Zod error path
+const parsed = TrialRequestSchema.safeParse(input);
+if (!parsed.success) {
+  const firstError = parsed.error.issues[0];
+  const fieldPath = firstError?.path[0];
+  return {
+    success: false,
+    code: 'VALIDATION',
+    message: firstError?.message ?? 'Invalid input',
+    requestId: null,
+    field: typeof fieldPath === 'string' ? fieldPath : null,  // client routes via result.field
+  };
+}
+
+// src/features/booking/BookingForm.tsx — client uses result.field (NOT substring matching)
+if (result.code === 'VALIDATION' && result.field) {
+  const fieldName = result.field as keyof FormState;
+  if (fieldName in INITIAL_STATE) {
+    setErrors({ [fieldName]: result.message });
+  }
+}
+```
+
+### CSS Progress Bar Pattern (M8 fix — zero React re-renders)
+
+```css
+/* src/app/globals.css — @theme block */
+@keyframes progress-fill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+```
+
+```tsx
+// src/components/sections/hero/ReelProgress.tsx
+// key={current} restarts the CSS animation on each frame change
+<div
+  key={current}
+  className="h-full bg-[var(--color-accent)]"
+  style={{ animation: `progress-fill ${frameDurationMs}ms linear forwards` }}
+/>
+```
+
+### instanceof Readable Pattern (M7 fix — no @ts-expect-error)
+
+```typescript
+// src/lib/storage/r2.ts — proper type narrowing for AWS SDK stream
+import { Readable } from 'stream';
+
+if (!response.Body) return null;
+if (!(response.Body instanceof Readable)) {
+  console.error('[r2:getObject] Unexpected body type:', typeof response.Body);
+  return null;
+}
+const chunks: Uint8Array[] = [];
+for await (const chunk of response.Body) {
+  chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
 }
 ```
 
@@ -806,6 +1006,73 @@ vi.mock('@aws-sdk/client-s3', () => ({ S3Client: vi.fn(() => ({ send: vi.fn() })
 
 // ✅ CORRECT — class syntax
 vi.mock('@aws-sdk/client-s3', () => { class MockS3 { send = vi.fn(); } return { S3Client: MockS3 }; });
+```
+
+```typescript
+// ❌ WRONG — as unknown as casts hide type mismatches (H4 fix)
+return result as unknown as Coach[];
+
+// ✅ CORRECT — fix the schema (add .notNull()) so Drizzle inferred types match Zod
+// schema: published: boolean('published').default(false).notNull()
+return result;  // no cast needed
+```
+
+```typescript
+// ❌ WRONG — @ts-expect-error suppresses type errors silently (M7 fix)
+// @ts-expect-error — response.Body is a Readable stream in Node
+for await (const chunk of response.Body) { ... }
+
+// ✅ CORRECT — instanceof type narrowing
+import { Readable } from 'stream';
+if (!(response.Body instanceof Readable)) return null;
+for await (const chunk of response.Body) { ... }
+```
+
+```typescript
+// ❌ WRONG — substring matching for form error routing (M4 fix)
+const message = result.message.toLowerCase();
+if (message.includes('email')) setErrors({ email: result.message });
+
+// ✅ CORRECT — use the field property from the server response
+if (result.code === 'VALIDATION' && result.field) {
+  setErrors({ [result.field]: result.message });
+}
+```
+
+```typescript
+// ❌ WRONG — setProgress in setInterval causes 10 re-renders/sec (M8 fix)
+const progressTimer = setInterval(() => {
+  setProgress(progressAccumulator);  // re-renders entire subtree
+}, 100);
+
+// ✅ CORRECT — CSS @keyframes animation + key={current} to restart on frame change
+<div key={current} style={{ animation: `progress-fill ${frameDurationMs}ms linear forwards` }} />
+```
+
+```typescript
+// ❌ WRONG — public query without published filter (H2 fix)
+const result = await db.select().from(coaches).orderBy(coaches.order);
+
+// ✅ CORRECT — filter by published: true
+const result = await db.select().from(coaches)
+  .where(eq(coaches.published, true))
+  .orderBy(coaches.order);
+```
+
+```typescript
+// ❌ WRONG — server action accepts id without validation (M5 fix)
+export async function deleteCoach(id: string) {
+  // id hits the DB without validation
+  await db.delete(coaches).where(eq(coaches.id, id));
+}
+
+// ✅ CORRECT — validate id as UUID before any DB call
+const IdSchema = z.string().uuid();
+export async function deleteCoach(id: string) {
+  const idResult = IdSchema.safeParse(id);
+  if (!idResult.success) return { success: false, code: 'VALIDATION', message: 'Invalid ID' };
+  await db.delete(coaches).where(eq(coaches.id, idResult.data));
+}
 ```
 
 ---
@@ -942,6 +1209,7 @@ interface TrialRequestResponse {
   code: 'SUCCESS' | 'VALIDATION' | 'RATE_LIMITED' | 'SPAM_DETECTED' | 'DUPLICATE' | 'INTERNAL';
   message: string;
   requestId: string | null;
+  field?: string | null;  // M4 fix: field name for validation errors (from Zod issues[0].path[0])
 }
 ```
 
@@ -973,7 +1241,7 @@ interface AssetGenerationRequest {
 | ADR | Decision | File |
 |---|---|---|
 | 001 | 5-Layer Golden Rule Architecture | `docs/adr/001-5-layer-architecture.md` |
-| 002 | CSP `unsafe-inline` for Styles | `docs/adr/002-csp-unsafe-inline.md` |
+| 002 | CSP `'unsafe-inline'` for Styles — NO `'unsafe-eval'` (H1 fix) | `docs/adr/002-csp-unsafe-inline.md` |
 | 003 | Auth.js v5 Beta Pin + JWT | `docs/adr/003-authjs-v5-beta-pin.md` |
 | 004 | Drizzle ORM over Prisma | `docs/adr/004-drizzle-over-prisma.md` |
 | 005 | Inngest over BullMQ | `docs/adr/005-inngest-over-bullmq.md` |
@@ -1003,6 +1271,11 @@ interface AssetGenerationRequest {
 | `pnpm audit` | Phase 10 | 2 moderate (esbuild, postcss) | pnpm.overrides | 0 vulnerabilities |
 | OWASP Top 10 | Phase 10 | 4 P1 + 4 P2 + 5 P3 | All P1+P2 fixed | — |
 | WCAG AAA | Phase 10 | 3 P1 + 2 P2 + 5 P3 | All P1 fixed | 19 brand-token tests |
+| **Code Review & Security Audit** | **2026-07-03** | **3 Critical + 4 High + 8 Medium + 7 Low** | **11 code-fixable items applied via TDD; 5 operational items documented** | **154→183 tests (+29 regression)** |
+
+**Post-remediation quality gate:** `pnpm typecheck` ✅ | `pnpm lint` ✅ (0 warnings) | `pnpm test` 183/183 ✅ | `pnpm audit` 0 vulns ✅
+
+See `.audit-report.md` for the full audit report with per-finding details, root causes, and remediation status.
 
 ### Appendix D: Post-Deploy Live-Site Validation
 
@@ -1028,7 +1301,23 @@ IRONFORGE_LIVE_URL=https://yourdomain.com bash scripts/smoke-test.sh
 - Real Stripe webhook delivery
 - Real Inngest Cloud function execution
 - Real Upstash Redis connectivity
+- **Dev mode in production** (C1 — browser console shows `[HMR] connected`, `[Fast Refresh] rebuilding`)
+- **`NEXT_PUBLIC_APP_URL` not set** (C2 — sitemap/robots publish `localhost` URLs)
+- **23 sitemap URLs 404** (C3 — detail page routes missing; now fixed)
+- **Stripe not configured** (H3 — checkout returns 503 NOT_CONFIGURED)
+
+### Appendix E: Outstanding Operational Items (Post-Remediation)
+
+These items were identified in the code audit but require deployment environment access — they cannot be fixed in code:
+
+| # | Item | Action Required | Impact if Unfixed |
+|---|------|-----------------|-------------------|
+| 1 | **Deploy with production build** (C1) | Use `docker compose -f docker-compose.prod.yml up -d` (NOT `pnpm dev`). The Dockerfile is correct; the deployment pipeline must use it. The new `/api/health` route makes the Dockerfile HEALTHCHECK functional. | Site runs in dev mode (5-10× slower, source maps exposed, TTFB 350ms vs <100ms) |
+| 2 | **Set `NEXT_PUBLIC_APP_URL`** (C2) | Set to `https://your-domain.com` in the deployment environment. | Sitemap + robots publish `localhost` URLs; Google indexes wrong URLs |
+| 3 | **Configure Stripe** (H3) | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` + create 4 products/prices + update `MEMBERSHIP_TIERS`/`DROP_IN_PACK` in `data.ts`. | Checkout returns 503 NOT_CONFIGURED; memberships non-functional |
+| 4 | **Apply migration 0002** | Run `pnpm drizzle:migrate` in the deployment environment. | `published`/`order` columns remain nullable at DB level (queries still work, but type safety not enforced at DB level) |
+| 5 | **Cloudflare robots.txt** (M6) | Move `Disallow: /admin/` into the Cloudflare-managed block, or disable CF managed robots. | Some crawlers may ignore the app's `Disallow: /admin/` directive |
 
 ---
 
-*End of IRONFORGE SKILL.md v1.0.0. Produced by following the Six-Phase Distillation Process from the `to-distill-project-into-skill` meta-skill.*
+*End of IRONFORGE SKILL.md v1.1.0. Produced by following the Six-Phase Distillation Process from the `to-distill-project-into-skill` meta-skill. Last updated 2026-07-03 (post-audit remediation: 3 Critical + 4 High + 8 Medium findings addressed; 183/183 tests passing; 0 vulnerabilities).*

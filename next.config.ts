@@ -22,6 +22,8 @@ const withBundleAnalyzer = bundleAnalyzer({
  *   - object-src 'none'                  — no Flash/Java/plugins
  *
  * 'unsafe-eval' is intentionally absent — not required for Next.js 16 production builds.
+ * 'unsafe-inline' is required for script-src (Next.js inline runtime) and style-src (Tailwind v4 + Next.js inline styles).
+ * Future hardening: switch to nonce-based CSP once Next.js 16 supports it natively.
  */
 const CSP_POLICY = [
   "default-src 'self'",

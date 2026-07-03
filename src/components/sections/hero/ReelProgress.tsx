@@ -1,12 +1,12 @@
 import { cn } from '@/lib/utils';
 
 interface ReelProgressProps {
-  /** Current frame index (0-based). */
+  /** Current frame index (0-based). Used as `key` to restart the CSS animation. */
   current: number;
   /** Total frame count. */
   total: number;
-  /** Progress through current frame, 0–100. */
-  progress: number;
+  /** Frame duration in milliseconds (drives the CSS animation duration). */
+  frameDurationMs?: number;
   className?: string;
 }
 
@@ -15,15 +15,23 @@ interface ReelProgressProps {
  *
  * Visual:
  *  - 1px tall bar at top of hero, full width
- *  - Fills 0→100% over each frame's 5s lifetime, resets on frame change
+ *  - Fills 0→100% over each frame's lifetime via CSS animation, resets on frame change
  *  - Chapter counter "01 / 05" in JetBrains Mono at bottom-right
  *  - Active frame number uses accent color; total uses muted
  *
- * Reference: Skills KB §5 (motion — width animation is the only exception
- * to "transform-only" rule, because it's a 1px indicator and the repaint
- * cost is negligible. Alternatively could use scaleX transform.)
+ * M8 fix: The progress bar is now driven by a CSS `@keyframes progress-fill`
+ * animation instead of React state updated every 100ms. The `key={current}`
+ * prop on the fill div causes React to remount it on each frame change,
+ * restarting the animation. This eliminates 10 re-renders per second.
+ *
+ * Reference: Skills KB §5 (motion — width animation for 1px indicator).
  */
-export function ReelProgress({ current, total, progress, className }: ReelProgressProps) {
+export function ReelProgress({
+  current,
+  total,
+  frameDurationMs = 5000,
+  className,
+}: ReelProgressProps) {
   return (
     <>
       {/* Top progress bar */}
@@ -34,9 +42,13 @@ export function ReelProgress({ current, total, progress, className }: ReelProgre
         )}
         aria-hidden="true"
       >
+        {/* key={current} restarts the CSS animation on each frame change */}
         <div
-          className="h-full bg-[var(--color-accent)] transition-[width] duration-100 ease-linear"
-          style={{ width: `${progress}%` }}
+          key={current}
+          className="h-full bg-[var(--color-accent)]"
+          style={{
+            animation: `progress-fill ${frameDurationMs}ms linear forwards`,
+          }}
         />
       </div>
 

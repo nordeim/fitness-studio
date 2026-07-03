@@ -64,6 +64,10 @@ export const TrialRequestResponseSchema = z.object({
   ]),
   message: z.string(),
   requestId: z.string().nullable(),
+  /** M4 fix: field name for validation errors (e.g. 'email', 'name').
+   *  Populated from Zod's `issues[0].path[0]` so the client can route
+   *  errors to the correct form field without substring matching. */
+  field: z.string().nullable().optional(),
 });
 
 export type TrialRequestResponse = z.infer<typeof TrialRequestResponseSchema>;

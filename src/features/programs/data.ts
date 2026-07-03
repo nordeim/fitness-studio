@@ -13,7 +13,7 @@
 export interface StaticProgram {
   id: string;
   slug: string;
-  goal: string;
+  goal: 'muscle' | 'fat' | 'fitness' | 'athletic' | 'rehab';
   title: string;
   subtitle: string | null;
   description: string;

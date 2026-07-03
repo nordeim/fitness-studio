@@ -128,6 +128,18 @@
       opacity: 0.3;
     }
   }
+
+  /* M8 fix: CSS-driven progress bar fill (replaces 10 React re-renders/sec).
+     The ReelProgress component uses `key={current}` to restart this animation
+     on each frame change, producing a smooth 0→100% fill with zero React state. */
+  @keyframes progress-fill {
+    from {
+      width: 0%;
+    }
+    to {
+      width: 100%;
+    }
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════════════

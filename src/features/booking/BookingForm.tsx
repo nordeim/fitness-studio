@@ -92,17 +92,19 @@ export function BookingForm({ coaches }: BookingFormProps) {
       });
       setState(INITIAL_STATE);
     } else {
-      // Handle validation errors — show on the relevant field
-      if (result.code === 'VALIDATION') {
-        // Try to match error to a field
-        const message = result.message.toLowerCase();
-        if (message.includes('name')) setErrors({ name: result.message });
-        else if (message.includes('email')) setErrors({ email: result.message });
-        else if (message.includes('phone')) setErrors({ phone: result.message });
-        else if (message.includes('goal')) setErrors({ goal: result.message });
-        else if (message.includes('time')) setErrors({ preferredTime: result.message });
-        else if (message.includes('consent')) setErrors({ consent: result.message });
-        else setErrors({ notes: result.message });
+      // Handle validation errors — route to the field identified by the server
+      // (M4 fix: uses the `field` property from the response instead of
+      // brittle substring matching on the error message).
+      if (result.code === 'VALIDATION' && result.field) {
+        const fieldName = result.field as keyof FormState;
+        if (fieldName in INITIAL_STATE) {
+          setErrors({ [fieldName]: result.message });
+        } else {
+          setErrors({ notes: result.message });
+        }
+      } else if (result.code === 'VALIDATION') {
+        // Fallback if field is not provided
+        setErrors({ notes: result.message });
       }
 
       toast.error(result.code === 'RATE_LIMITED' ? 'Too many requests' : 'Submission failed', {

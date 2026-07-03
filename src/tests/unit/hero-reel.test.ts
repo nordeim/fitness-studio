@@ -17,13 +17,12 @@ describe('useHeroReel', () => {
     vi.useRealTimers();
   });
 
-  it('starts on frame 0 with 0% progress and muted=true', () => {
+  it('starts on frame 0 with muted=true', () => {
     const { result } = renderHook(() =>
       useHeroReel({ frameCount: 5, frameDurationMs: 5000 }),
     );
 
     expect(result.current.currentFrame).toBe(0);
-    expect(result.current.progress).toBe(0);
     expect(result.current.muted).toBe(true);
   });
 
@@ -68,23 +67,19 @@ describe('useHeroReel', () => {
     expect(result.current.currentFrame).toBe(0);
   });
 
-  it('advances frame after frameDurationMs and resets progress', () => {
+  it('advances frame after frameDurationMs', () => {
     const { result } = renderHook(() =>
       useHeroReel({ frameCount: 5, frameDurationMs: 5000 }),
     );
 
     // Default IntersectionObserver mock returns isIntersecting=false,
-    // so we need to mock it to return true for the reel to play.
-    // The setup.ts mock has observe: vi.fn() — we need to manually trigger.
-    // Easier: just check that progress accumulates over time.
+    // but the hook initializes inView=true, so shouldPlay is true.
 
-    // Advance 100ms — progress should step
+    // Advance 5000ms — frame should advance
     act(() => {
-      vi.advanceTimersByTime(100);
+      vi.advanceTimersByTime(5000);
     });
-    // 100ms / 5000ms = 2%
-    expect(result.current.progress).toBeGreaterThan(0);
-    expect(result.current.progress).toBeLessThanOrEqual(2);
+    expect(result.current.currentFrame).toBe(1);
   });
 
   it('does not advance when autoAdvance is false', () => {
@@ -104,7 +99,6 @@ describe('useHeroReel', () => {
     });
 
     expect(result.current.currentFrame).toBe(0);
-    expect(result.current.progress).toBe(0);
   });
 
   it('handles frameCount of 1 (no cycling)', () => {
@@ -122,12 +116,13 @@ describe('useHeroReel', () => {
     expect(result.current.currentFrame).toBe(0);
   });
 
-  it('returns a containerRef', () => {
+  it('returns a containerRef and frameDurationMs', () => {
     const { result } = renderHook(() =>
       useHeroReel({ frameCount: 5, frameDurationMs: 5000 }),
     );
 
     expect(result.current.containerRef).toBeDefined();
     expect(result.current.containerRef.current).toBeNull(); // Not attached to DOM in test
+    expect(result.current.frameDurationMs).toBe(5000);
   });
 });

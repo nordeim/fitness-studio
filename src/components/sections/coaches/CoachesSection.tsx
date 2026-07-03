@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Section } from '@/components/layout/Section';
 import { SectionMarker } from '@/components/layout/SectionMarker';
 import { CoachFlipGrid } from './CoachFlipGrid';
@@ -37,12 +38,12 @@ export async function CoachesSection() {
             credentials and signature workout.
           </p>
         </div>
-        <a
-          href="/coaches"
+        <Link
+          href="/#coaches"
           className="shrink-0 font-heading text-xs uppercase tracking-[0.2em] text-[var(--color-fg-dim)] transition-colors hover:text-[var(--color-accent)]"
         >
           View all 24 →
-        </a>
+        </Link>
       </div>
 
       <CoachFlipGrid coaches={coachesForGrid} />

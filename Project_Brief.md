@@ -74,7 +74,7 @@ Phase 2: VERIFICATION & ALIGNMENT
 ├──────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┼────────┤
 │ proxy.ts > middleware.ts │ proxy.ts only, middleware.ts DEPRECATED │ ✅ proxy.ts exists; middleware.ts does NOT exist │ ✅ │
 ├──────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┼────────┤
-│ Test count │ 153 unit tests + 8 E2E spec files │ ✅ 153 unit tests (13 test files) + 8 E2E spec files │ ✅ │
+│ Test count │ 183 unit tests + 8 E2E spec files │ ✅ 183 unit tests (16 test files) + 8 E2E spec files │ ✅ │
 ├──────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┼────────┤
 │ Drizzle schema │ 11 tables, 2 migrations │ ✅ 11 tables in schema, 2 SQL files in drizzle/ │ ✅ │
 ├──────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────┼────────┤
@@ -114,7 +114,7 @@ Phase 2: VERIFICATION & ALIGNMENT
 
 - pnpm typecheck ✅ Strict mode tsc --noEmit with noUncheckedIndexedAccess, noImplicitOverride, verbatimModuleSyntax
 - pnpm lint ✅ ESLint flat config 9.x
-- pnpm test ✅ 153/153 unit tests passing across 13 test files
+- pnpm test ✅ 183/183 unit tests passing across 13 test files
 - pnpm build ✅ 24 routes generated in .next/
 
 ---
@@ -158,7 +158,7 @@ As documented in src/app/(marketing)/page.tsx:
 Observations
 
 1. error.txt is non-empty — Contains Vitest stack traces from the booking actions test (graceful degradation simulation — expected behavior). This is NOT a build/runtime error, but an artifact from test
-   execution. The tests PASS (153/153), and the logged error is the intentional throw new Error('DB unavailable') mock.
+   execution. The tests PASS (183/183), and the logged error is the intentional throw new Error('DB unavailable') mock.
 
 2. Project is in Phase 12 (Docs & ADRs) / Phase 13 (Handoff) per the retrospective — All core functionality is complete and quality-gated.
 
@@ -171,7 +171,7 @@ Summary
 ├─────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ Architecture Compliance │ ✅ Full 5-layer enforcement confirmed; domain layer is pure (no React/Next/DB runtime imports) │
 ├─────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ Test Coverage │ ✅ 153/153 unit tests passing; 8 E2E spec files present │
+│ Test Coverage │ ✅ 183/183 unit tests passing; 8 E2E spec files present │
 ├─────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ Build Health │ ✅ Clean build, 24 routes, .next/ populated │
 ├─────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤

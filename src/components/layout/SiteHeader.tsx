@@ -12,7 +12,6 @@ const NAV_ITEMS: ReadonlyArray<{ href: string; label: string }> = [
   { href: '/#programs', label: 'Programs' },
   { href: '/#coaches', label: 'Coaches' },
   { href: '/#stories', label: 'Stories' },
-  { href: '/#schedule', label: 'Schedule' },
   { href: '/#booking', label: 'Contact' },
 ];
 

@@ -42,7 +42,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
   title: {
     default: 'IRONFORGE — Elite Strength & Conditioning Studio',
     template: '%s · IRONFORGE',
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     siteName: 'IRONFORGE',
-    url: 'http://localhost:3000',
+    url: process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
     images: [
       {
         url: '/icon.svg',

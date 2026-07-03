@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { CoachFormSchema } from './domain/schemas';
 
@@ -9,12 +10,15 @@ import { CoachFormSchema } from './domain/schemas';
  *
  * All actions:
  *  1. Check auth (must be admin)
- *  2. Zod validate input
- *  3. Perform DB operation (dynamic import — graceful fallback)
- *  4. revalidatePath to refresh cached pages
+ *  2. Validate `id` param as UUID (Finding M5 fix — previously raw string)
+ *  3. Zod validate input body
+ *  4. Perform DB operation (dynamic import — graceful fallback)
+ *  5. revalidatePath to refresh cached pages
  *
  * Reference: Skills KB §12 (Auth-First Server Action pattern).
  */
+
+const IdSchema = z.string().uuid('Invalid ID format');
 
 async function requireAdmin() {
   const session = await auth();
@@ -62,6 +66,15 @@ export async function updateCoach(id: string, input: unknown) {
   const authCheck = await requireAdmin();
   if (!authCheck.success) return authCheck;
 
+  const idResult = IdSchema.safeParse(id);
+  if (!idResult.success) {
+    return {
+      success: false as const,
+      code: 'VALIDATION' as const,
+      message: idResult.error.issues[0]?.message ?? 'Invalid ID',
+    };
+  }
+
   const parsed = CoachFormSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -75,7 +88,7 @@ export async function updateCoach(id: string, input: unknown) {
     const { db } = await import('@/lib/db/client');
     const { coaches } = await import('@/lib/db/schema');
     const { eq } = await import('drizzle-orm');
-    await db.update(coaches).set({ ...parsed.data, updatedAt: new Date() }).where(eq(coaches.id, id));
+    await db.update(coaches).set({ ...parsed.data, updatedAt: new Date() }).where(eq(coaches.id, idResult.data));
     revalidatePath('/admin/coaches');
     revalidatePath('/');
     return { success: true as const, code: 'SUCCESS' as const, message: 'Coach updated' };
@@ -89,11 +102,20 @@ export async function deleteCoach(id: string) {
   const authCheck = await requireAdmin();
   if (!authCheck.success) return authCheck;
 
+  const idResult = IdSchema.safeParse(id);
+  if (!idResult.success) {
+    return {
+      success: false as const,
+      code: 'VALIDATION' as const,
+      message: idResult.error.issues[0]?.message ?? 'Invalid ID',
+    };
+  }
+
   try {
     const { db } = await import('@/lib/db/client');
     const { coaches } = await import('@/lib/db/schema');
     const { eq } = await import('drizzle-orm');
-    await db.delete(coaches).where(eq(coaches.id, id));
+    await db.delete(coaches).where(eq(coaches.id, idResult.data));
     revalidatePath('/admin/coaches');
     revalidatePath('/');
     return { success: true as const, code: 'SUCCESS' as const, message: 'Coach deleted' };
@@ -107,11 +129,20 @@ export async function toggleCoachPublished(id: string, published: boolean) {
   const authCheck = await requireAdmin();
   if (!authCheck.success) return authCheck;
 
+  const idResult = IdSchema.safeParse(id);
+  if (!idResult.success) {
+    return {
+      success: false as const,
+      code: 'VALIDATION' as const,
+      message: idResult.error.issues[0]?.message ?? 'Invalid ID',
+    };
+  }
+
   try {
     const { db } = await import('@/lib/db/client');
     const { coaches } = await import('@/lib/db/schema');
     const { eq } = await import('drizzle-orm');
-    await db.update(coaches).set({ published, updatedAt: new Date() }).where(eq(coaches.id, id));
+    await db.update(coaches).set({ published, updatedAt: new Date() }).where(eq(coaches.id, idResult.data));
     revalidatePath('/admin/coaches');
     revalidatePath('/');
     return { success: true as const, code: 'SUCCESS' as const, message: published ? 'Coach published' : 'Coach unpublished' };

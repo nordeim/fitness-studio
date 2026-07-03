@@ -201,7 +201,7 @@ module.exports = {
 - All server actions return typed `{ success, code, message }` responses
 - No `any` types (enforced by ESLint `@typescript-eslint/no-explicit-any: error`)
 - All async error paths have try/catch with graceful fallback
-- 153 Vitest tests pass (brand tokens, hero reel, stories carousel, goal selector, query modules, booking schema + action, membership schemas + data, asset schemas, coach form schema)
+- 183 Vitest tests pass (brand tokens, hero reel, stories carousel, goal selector, query modules, booking schema + action, membership schemas + data, asset schemas, coach form schema)
 
 ### Axis 2: Readability ✅
 
@@ -262,7 +262,7 @@ module.exports = {
 |---|---|
 | `pnpm typecheck` | ✅ |
 | `pnpm lint` | ✅ |
-| `pnpm test` | ✅ 153/153 |
+| `pnpm test` | ✅ 183/183 |
 | `pnpm build` | ✅ 21 routes (4 static + 17 dynamic) |
 | `pnpm audit` | ✅ 0 vulnerabilities |
 | Dev server smoke | ✅ Home page HTTP 200 |

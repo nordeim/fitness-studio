@@ -14,8 +14,6 @@ interface UseHeroReelOptions {
 interface UseHeroReelReturn {
   /** Index of the currently active frame (0-based). */
   currentFrame: number;
-  /** Progress through the current frame, 0–100 (for the progress bar). */
-  progress: number;
   /** Whether the reel is muted (UI affordance — no audio in v1). */
   muted: boolean;
   /** Whether the reel is currently playing (auto-advancing). Derived, not state. */
@@ -28,6 +26,8 @@ interface UseHeroReelReturn {
   toggleMute: () => void;
   /** Ref to attach to the reel container for IntersectionObserver. */
   containerRef: React.RefObject<HTMLDivElement | null>;
+  /** Frame duration in ms (passed to ReelProgress for CSS animation duration). */
+  frameDurationMs: number;
 }
 
 /**
@@ -36,14 +36,18 @@ interface UseHeroReelReturn {
  * Behaviors:
  *  - Cycles through `frameCount` frames every `frameDurationMs` (default 5000ms).
  *  - Cross-fades between frames (handled by ReelFrame CSS, not this hook).
- *  - Progress bar updates every 100ms (smooth 1px fill).
  *  - Pauses auto-advance when:
  *      * `prefers-reduced-motion: reduce` is set
  *      * Container is off-screen (IntersectionObserver, threshold 0.25)
  *      * `autoAdvance` is false
- *  - Mute state is a UI affordance only — no audio in v1. Phase 8 may wire
- *    actual video with audio.
+ *  - Mute state is a UI affordance only — no audio in v1.
  *  - All timers cleaned up on unmount.
+ *
+ * M8 fix: The progress bar is now driven by a CSS `@keyframes progress-fill`
+ * animation in the ReelProgress component (using `key={current}` to restart
+ * on each frame change). This hook no longer calls `setProgress` every 100ms
+ * — it only calls `setCurrentFrame` when the frame advances. This eliminates
+ * 10 React re-renders per second.
  *
  * React 19 compliance: `isPlaying` is DERIVED from `shouldPlay`, not synced
  * via setState-in-effect (avoids cascading renders per react-hooks rule).
@@ -57,7 +61,6 @@ export function useHeroReel({
   autoAdvance = true,
 }: UseHeroReelOptions): UseHeroReelReturn {
   const [currentFrame, setCurrentFrame] = useState(0);
-  const [progress, setProgress] = useState(0);
   const [muted, setMuted] = useState(true);
   const [inView, setInView] = useState(true);
 
@@ -69,12 +72,10 @@ export function useHeroReel({
 
   const goTo = (index: number) => {
     setCurrentFrame(clamp(index, frameCount));
-    setProgress(0);
   };
 
   const next = () => {
     setCurrentFrame((prev) => (prev + 1) % frameCount);
-    setProgress(0);
   };
 
   const toggleMute = () => setMuted((m) => !m);
@@ -102,38 +103,27 @@ export function useHeroReel({
   // DERIVED: playing state (no setState-in-effect — React 19 compliant)
   const shouldPlay = autoAdvance && !reducedMotion && inView && frameCount > 1;
 
-  // Frame cycling + progress bar.
-  // All setState calls happen INSIDE setInterval callback (event-context, not
+  // Frame cycling only — no progress bar state (M8 fix: CSS handles the visual).
+  // setCurrentFrame happens INSIDE setInterval callback (event-context, not
   // effect-context), so this is compliant with react-hooks/set-state-in-effect.
   useEffect(() => {
     if (!shouldPlay) return;
 
-    const progressIntervalMs = 100;
-    const progressStep = (progressIntervalMs / frameDurationMs) * 100;
-    let progressAccumulator = 0;
+    const frameTimer = setInterval(() => {
+      setCurrentFrame((prev) => (prev + 1) % frameCount);
+    }, frameDurationMs);
 
-    const progressTimer = setInterval(() => {
-      progressAccumulator += progressStep;
-      if (progressAccumulator >= 100) {
-        setCurrentFrame((prev) => (prev + 1) % frameCount);
-        progressAccumulator = 0;
-        setProgress(0);
-      } else {
-        setProgress(progressAccumulator);
-      }
-    }, progressIntervalMs);
-
-    return () => clearInterval(progressTimer);
+    return () => clearInterval(frameTimer);
   }, [shouldPlay, frameCount, frameDurationMs]);
 
   return {
     currentFrame,
-    progress,
     muted,
     isPlaying: shouldPlay, // derived
     goTo,
     next,
     toggleMute,
     containerRef,
+    frameDurationMs,
   };
 }

@@ -103,7 +103,7 @@ pnpm db:reset            # Migrate + seed
 | `pnpm start` | Start production server |
 | `pnpm typecheck` | `tsc --noEmit` |
 | `pnpm lint` | ESLint flat config |
-| `pnpm test` | Vitest run (153 unit tests) |
+| `pnpm test` | Vitest run (183 unit tests) |
 | `pnpm test:e2e` | Playwright (requires dev server) |
 | `pnpm format` | Prettier write |
 | `pnpm drizzle:generate` | Generate migration from schema diff |
@@ -122,7 +122,7 @@ This is enforced by Husky `pre-push` hook + GitHub Actions CI.
 ## Testing Strategy
 
 ### Test Pyramid
-- **Unit Tests (153):** Vitest + jsdom — brand tokens, hooks, schemas, queries, server actions
+- **Unit Tests (183):** Vitest + jsdom — brand tokens, hooks, schemas, queries, server actions
 - **E2E Tests (8 specs):** Playwright Chromium — hero, programs, coaches, stories, booking, memberships, auth, SEO
 
 ### Test Commands
@@ -226,9 +226,11 @@ Layer 4  src/lib/                → Infrastructure: Drizzle, Auth, Inngest, R2,
 ### Database / Data Layer
 - Drizzle ORM + `postgres` driver (PgBouncer-compatible with `prepare: false`)
 - 11 tables: users, accounts, sessions, verificationTokens, coaches, programs, stories, classSlots, trialRequests, newsletterSubs, subscriptions
-- 2 migrations: `drizzle/0000_majestic_triathlon.sql` + `drizzle/0001_colossal_anthem.sql`
+- 3 migrations: `drizzle/0000_majestic_triathlon.sql` + `drizzle/0001_colossal_anthem.sql` + `drizzle/0002_enforce_published_notnull.sql`
 - Seed: `pnpm db:seed` (idempotent via `ON CONFLICT DO NOTHING`)
-- **Queries pattern:** DB-first with static fallback — `try { db } catch { return STATIC_DATA }`
+- **NOT NULL enforcement:** `published` and `order` columns on coaches/programs/stories are `.notNull()` (migration 0002). Drizzle inferred types now match Zod schemas — no `as unknown as` casts needed.
+- **Queries pattern:** DB-first with static fallback — `try { db } catch { return STATIC_DATA }`. All public queries filter by `published: true` (H2 fix). DB results are Zod-validated before returning (defense-in-depth for varchar→enum narrowing in programs).
+- **ID validation:** Server actions accepting an `id` param must validate via `z.string().uuid()` before any DB call (M5 fix). See `IdSchema` in `features/coaches/actions.ts`.
 
 ### Environment Variables
 - **Runtime:** Validated by `src/lib/env.ts` (Zod schema, throws on missing)
@@ -254,7 +256,10 @@ function getClient() {
 - Stripe webhook signature verification
 - SSRF allowlist on `downloadImage()` (replicate.delivery only)
 - Admin auth: edge proxy → layout session check → action role check
-- CSP + HSTS + X-Frame-Options + nosniff + Referrer-Policy + Permissions-Policy
+- CSP: `default-src 'self'; script-src 'self' 'unsafe-inline'` (NO `'unsafe-eval'` — H1 fix). `'unsafe-inline'` is required for Next.js App Router inline runtime; future hardening: nonce-based CSP.
+- HSTS + X-Frame-Options (DENY) + nosniff + Referrer-Policy + Permissions-Policy
+- UUID validation on all server-action `id` params (M5 fix)
+- Server actions return typed `{ success, code, message, field? }` — `field` populated from Zod `issues[0].path[0]` for client-side error routing (M4 fix)
 
 ## Anti-Patterns to Avoid
 
@@ -266,3 +271,86 @@ function getClient() {
 - **`tailwind.config.js`:** Forbidden in v4. All tokens in `globals.css` `@theme` block.
 - **Client component importing `lib/storage/r2.ts`:** Will crash — `r2.ts` imports env validation which fails in browser. Server Component signs URL, passes as prop.
 - **`setState` in effect body:** React 19 `react-hooks/set-state-in-effect` rule. Derive state instead, or use `setState` only in event callbacks (setInterval, pointer events).
+- **`as unknown as` casts:** Banned in queries (H4 fix). The Drizzle schema's `published`/`order` columns are `.notNull()`, so inferred types match Zod schemas. If a type mismatch appears, fix the schema (add `.notNull()` or change column type) — don't cast.
+- **`@ts-expect-error` / `@ts-ignore` / `@ts-nocheck`:** Banned (M7 fix). Use proper type narrowing (`instanceof`, type guards) or fix the upstream type declaration.
+- **Substring matching for error routing:** Banned in forms (M4 fix). Server actions return a `field` property; clients route errors via `result.field`, not `message.includes('email')`.
+- **CSP with `'unsafe-eval'`:** Banned (H1 fix). Next.js 16 production builds do not require `'unsafe-eval'`. Only `'unsafe-inline'` is allowed (for script-src + style-src).
+- **Hardcoded `localhost` in metadata:** Use `process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'` for `metadataBase`, OG `url`, sitemap, and robots (M1 fix).
+- **`setProgress` in `setInterval` for progress bars:** Causes 10 re-renders/sec (M8 fix). Use CSS `@keyframes` animation + `key={current}` to restart on frame change.
+- **Public queries without `published: true` filter:** Banned (H2 fix). Unpublished records would leak via the public API. Always `.where(eq(*.published, true))`.
+- **Server actions without UUID validation on `id`:** Banned (M5 fix). Always `z.string().uuid().safeParse(id)` before any DB call.
+
+## Lessons Learned (Post-Audit Remediation 2026-07-03)
+
+A full code review + audit (see `.audit-report.md`) surfaced 3 Critical, 4 High, 8 Medium, and 7 Low findings. The code-fixable items were applied via TDD (RED → GREEN → REFACTOR). Key lessons:
+
+### Architecture / Type Safety
+
+1. **`.default()` without `.notNull()` creates `T | null` in Drizzle inference.** This forced 20 `as unknown as` casts in the queries modules. Fix: always pair `.default(X)` with `.notNull()` when the column is semantically non-nullable. Migration 0002 backfills this for `published` and `order` columns.
+
+2. **Zod enums vs Drizzle `varchar` mismatch.** The `programs.goal` column is `varchar` in Postgres but `z.enum([...])` in the domain schema. Drizzle infers `string`, Zod infers the enum union. Fix: keep the column as `varchar` (avoids complex migration) and Zod-validate DB results at runtime in the query module (defense-in-depth). A future sprint could switch to `pgEnum` for compile-time safety.
+
+3. **Casts hide bugs.** The `as unknown as Coach[]` casts satisfied ESLint's `no-explicit-any` rule but defeated TypeScript's runtime safety — they hid BOTH the `published: boolean | null` mismatch AND the `goal: string vs enum` mismatch. Lesson: if you need a cast, the schema is wrong. Fix the schema.
+
+### Security / Configuration
+
+4. **CSP `'unsafe-eval'` is NOT required for Next.js 16 production.** The inline comment claimed it was "intentionally absent" but the actual CSP string included it. This is a documentation/implementation contradiction. Lesson: grep the actual config string, don't trust the comment. Fix applied: removed `'unsafe-eval'`, fixed the comment.
+
+5. **`NEXT_PUBLIC_APP_URL` must be set in production.** Without it, `sitemap.xml` and `robots.txt` publish `http://localhost:3000/...` URLs (verified on the live site). The code now reads `process.env.NEXT_PUBLIC_APP_URL` for `metadataBase`, OG `url`, sitemap, and robots. Operational fix: set the env var in the deployment.
+
+6. **Stripe env vars not configured = entire checkout flow returns 503.** The graceful degradation pattern returns `{ success: false, code: 'NOT_CONFIGURED' }` — which is correct behavior, but means the memberships section is non-functional until Stripe is configured. Operational fix: set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` + create 4 Stripe products/prices and update `MEMBERSHIP_TIERS[*].stripePriceId` + `DROP_IN_PACK.stripePriceId` in `src/features/memberships/data.ts`.
+
+### Performance / React 19
+
+7. **`setProgress` every 100ms = 10 re-renders/sec for the entire hero subtree.** The `agent-browser vitals` phases list showed continuous Render+Commit cycles for 3+ seconds. Fix: drive the progress bar with a CSS `@keyframes progress-fill` animation; use `key={current}` on the fill div to restart the animation on each frame change. Zero React re-renders.
+
+8. **`@ts-expect-error` is a silent type-safety escape hatch.** The `r2.ts` stream handling used `@ts-expect-error` to suppress the `response.Body` type mismatch. Fix: `import { Readable } from 'stream'` + `if (!(response.Body instanceof Readable)) { return null; }` — proper type narrowing with a fail-loud fallback.
+
+### Testing / TDD
+
+9. **TDD catches missing filters.** The existing query tests only tested the static-fallback path (DB throws). They didn't assert that unpublished records are filtered out — which is why the H2 bug (missing `published: true` filter) went undetected. The new `queries-published-filter.test.ts` mocks the DB to RETURN data (including unpublished rows) and asserts only published rows are returned.
+
+10. **Mock the chainable builder, not just the throw.** The existing mock pattern was `vi.mock('@/lib/db/client', () => { throw new Error('DB unavailable') })`. The new pattern returns a chainable mock: `{ select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ orderBy: vi.fn().mockResolvedValue(rows) })) })) })) }`. This lets you test the DB-available path without a real database.
+
+## Outstanding Operational Items (Require Deployment Env Access)
+
+These items were identified in the audit but cannot be fixed in code — they require changes to the deployment environment or external services:
+
+| # | Item | Action | Impact if Unfixed |
+|---|------|--------|-------------------|
+| 1 | **Deploy with production build** (C1) | Use `docker compose -f docker-compose.prod.yml up -d` OR equivalent. The Dockerfile is correct (`pnpm build` → `pnpm start`); the deployment pipeline must use it. The new `/api/health` route makes the Dockerfile HEALTHCHECK functional. | Site runs in dev mode (5-10× slower, source maps exposed, React DevTools prompt visible, TTFB 350ms vs <100ms) |
+| 2 | **Set `NEXT_PUBLIC_APP_URL`** (C2) | Set `NEXT_PUBLIC_APP_URL=https://ironforge.jesspete.shop` in the deployment environment. | Sitemap + robots publish `localhost` URLs; Google indexes wrong URLs; OG metadata points to localhost |
+| 3 | **Configure Stripe** (H3) | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`. Create 4 Stripe products/prices and update `MEMBERSHIP_TIERS[*].stripePriceId` + `DROP_IN_PACK.stripePriceId` in `src/features/memberships/data.ts`. | Checkout returns 503 NOT_CONFIGURED; memberships section non-functional |
+| 4 | **Apply migration 0002** | Run `pnpm drizzle:migrate` in the deployment environment. | `published` and `order` columns remain nullable in prod DB; queries still work (Drizzle sends the WHERE clause) but type safety is not enforced at the DB level |
+| 5 | **Cloudflare robots.txt** (M6) | Move `Disallow: /admin/` directives into the Cloudflare-managed robots block, OR disable Cloudflare managed robots, OR use a `User-agent: Googlebot` block for the disallows. | Different crawlers handle multiple `User-agent: *` blocks differently; the app's `Disallow: /admin/` MAY be ignored by some crawlers |
+
+## Troubleshooting
+
+### "Site is slow / TTFB is high"
+- **Check:** Is the deployment running `pnpm dev` or `pnpm start`? Open browser console — if you see `[HMR] connected` or `[Fast Refresh] rebuilding`, it's dev mode.
+- **Fix:** Deploy with the production Dockerfile (`docker compose -f docker-compose.prod.yml up -d`).
+
+### "Sitemap shows localhost URLs"
+- **Cause:** `NEXT_PUBLIC_APP_URL` not set in the deployment environment.
+- **Fix:** Set `NEXT_PUBLIC_APP_URL=https://your-domain.com` and redeploy. Verify with `curl https://your-domain.com/sitemap.xml | head`.
+
+### "Checkout returns 503 NOT_CONFIGURED"
+- **Cause:** Stripe env vars not set.
+- **Fix:** Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`. Create the 4 Stripe products/prices and update `MEMBERSHIP_TIERS` + `DROP_IN_PACK` in `src/features/memberships/data.ts`.
+
+### "TypeScript error: Type 'string' is not assignable to type 'enum'"
+- **Cause:** Drizzle `varchar` column vs Zod `z.enum()` schema mismatch.
+- **Fix:** Either (a) Zod-validate the DB result at runtime (see `programs/queries.ts` for the pattern), or (b) change the Drizzle column to `pgEnum` (requires migration).
+
+### "Tests fail with 'Cannot access before initialization'"
+- **Cause:** Using a plain hoisted variable inside a `vi.mock()` factory.
+- **Fix:** Use `vi.hoisted()` for mock factories: `const { mock } = vi.hoisted(() => ({ mock: vi.fn() }))`.
+
+### "TypeScript error on `response.Body` in R2 getObject"
+- **Cause:** AWS SDK types `response.Body` as `StreamingBlobPayload` which is not directly iterable.
+- **Fix:** Use `instanceof Readable` type narrowing (see `lib/storage/r2.ts`). Never use `@ts-expect-error`.
+
+### "Hero reel progress bar stutters / causes re-renders"
+- **Cause:** `setProgress` called every 100ms via `setInterval`.
+- **Fix:** Use CSS `@keyframes progress-fill` animation with `key={current}` to restart on frame change (see `ReelProgress.tsx` + `globals.css`).
+

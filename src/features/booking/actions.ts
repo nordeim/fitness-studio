@@ -46,11 +46,15 @@ export async function submitTrialRequest(
   const parsed = TrialRequestSchema.safeParse(input);
   if (!parsed.success) {
     const firstError = parsed.error.issues[0];
+    // M4 fix: populate `field` from the Zod error path so the client
+    // can route errors to the correct form field without substring matching.
+    const fieldPath = firstError?.path[0];
     return {
       success: false,
       code: 'VALIDATION',
       message: firstError?.message ?? 'Invalid input',
       requestId: null,
+      field: typeof fieldPath === 'string' ? fieldPath : null,
     };
   }
 

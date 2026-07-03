@@ -1,11 +1,11 @@
-# IRONFORGE — Master Project Architecture Document (PAD) v1.0.0
+# IRONFORGE — Master Project Architecture Document (PAD) v1.1.0
 
 **Classification:** Internal Engineering Reference
 **Status:** DEFINITIVE, PRODUCTION-LOCKED BLUEPRINT
 Companion Document: AGENTS.md, CLAUDE.md, README.md, fitness-studio_SKILL.md
-**Last Updated:** 2026-07-03
+**Last Updated:** 2026-07-03 (post-audit remediation)
 **Audience:** Senior Engineers, Tech Leads, DevOps, Onboarding Engineers, AI Coding Agents
-**Quality Gate:** 153/153 unit tests passing, 8 E2E spec files, 0 vulnerabilities, 24 routes built
+**Quality Gate:** 183/183 unit tests passing (16 files), 8 E2E spec files, 0 vulnerabilities, 24+ routes built
 
 **Rule:** Every architectural decision in this document traces to a specific rationale. Nothing is here "because it's popular."
 
@@ -87,7 +87,7 @@ IRONFORGE is a production-grade, high-end strength & conditioning studio website
 | **Language**        | TypeScript                    | 5.9.3          | Strict mode, `noUncheckedIndexedAccess`, `verbatimModuleSyntax` |
 | **Styling**         | Tailwind CSS                  | 4.3.2          | CSS-first `@theme`, no `tailwind.config.js`                     |
 | **UI Primitives**   | Radix UI + shadcn/ui          | latest         | Dialog, Accordion, Dropdown, Slot (custom-wrapped)              |
-| **Database**        | PostgreSQL + Drizzle ORM      | 0.45.2         | 11 tables, 2 migrations, `ON CONFLICT DO NOTHING`               |
+| **Database**        | PostgreSQL + Drizzle ORM      | 0.45.2         | 11 tables, 3 migrations, `ON CONFLICT DO NOTHING`, `.notNull()` on `published`/`order` |
 | **Auth**            | Auth.js v5 (next-auth)        | 5.0.0-beta.31  | Credentials provider, JWT sessions, edge proxy                  |
 | **Job Queue**       | Inngest                       | 4.11.0         | Trial request pipeline, AI asset generation                     |
 | **Payments**        | Stripe                        | 22.3.0         | Checkout Sessions, webhooks, customer portal                    |
@@ -95,7 +95,7 @@ IRONFORGE is a production-grade, high-end strength & conditioning studio website
 | **Storage**         | Cloudflare R2 (S3-compatible) | latest         | AI-generated assets, signed URLs                                |
 | **Rate Limiting**   | Upstash Redis                 | 2.0.8          | Sliding window on booking/checkout/auth                         |
 | **Validation**      | Zod                           | 4.4.3          | All inputs + env vars + API responses                           |
-| **Testing**         | Vitest + Playwright           | 4.1.9 / 1.61.0 | 153 unit tests + 8 E2E spec files                               |
+| **Testing**         | Vitest + Playwright           | 4.1.9 / 1.61.0 | 183 unit tests (16 files) + 8 E2E spec files                    |
 | **Package Manager** | pnpm                          | ≥10.26.0       | Lockfile + workspace config                                     |
 | **Node.js**         | ≥20.18.0                      | —              | Pinned via `.nvmrc`                                             |
 
@@ -112,14 +112,15 @@ IRONFORGE is a production-grade, high-end strength & conditioning studio website
 - **Consequences (Negative):** More files per feature. Dynamic imports needed for infrastructure in queries/actions (to avoid crashing at module load).
 - **Alternatives Rejected:** Monolithic feature modules (no layer separation — rejected for testability), DDD bounded contexts (overkill for a single-studio site).
 
-### ADR-002: CSP `unsafe-inline` for Styles (Next.js App Router)
+### ADR-002: CSP `'unsafe-inline'` for Styles (Next.js App Router) — NO `'unsafe-eval'`
 
 - **Context:** Next.js 16 App Router injects inline `<script>` chunks for router state and inline `<style>` for CSS. A strict CSP without `'unsafe-inline'` would break the application.
-- **Decision:** Use `'unsafe-inline'` in `script-src` and `style-src` for the initial ship. NOT `'unsafe-eval'` (removed in Phase 0).
-- **Rationale:** Application renders correctly without nonce management overhead.
-- **Consequences (Positive):** No per-request nonce generation complexity. Tighter than the original cloned config (no `'unsafe-eval'`).
+- **Decision:** Use `'unsafe-inline'` in `script-src` and `style-src` for the initial ship. **NEVER** `'unsafe-eval'` — removed in audit remediation (H1 fix) after it was discovered the inline comment claimed it was absent but the actual CSP string included it.
+- **Rationale:** Application renders correctly without nonce management overhead. Next.js 16 production builds do NOT require `'unsafe-eval'`.
+- **Consequences (Positive):** No per-request nonce generation complexity. Tighter CSP — no `'unsafe-eval'` attack surface.
 - **Consequences (Negative):** `'unsafe-inline'` in `script-src` allows injected inline scripts (XSS risk if dependency compromised).
-- **Alternatives Rejected:** Nonce-based CSP (future hardening — will be implemented in a later sprint).
+- **Alternatives Rejected:** Nonce-based CSP (future hardening — will be implemented in a later sprint). `'unsafe-eval'` (NOT required for Next.js 16 prod — was a misconfiguration).
+- **Lesson:** Grep the actual config string, don't trust the inline comment.
 
 ### ADR-003: Auth.js v5 Beta Pin + JWT Strategy
 
@@ -274,12 +275,16 @@ Layer 4  src/lib/                → Infrastructure: Drizzle, Auth.js, Inngest, 
 │   │       ├── page.tsx             # Dashboard (stats + quick actions)
 │   │       ├── coaches/             # CRUD: list, new, edit
 │   │       └── assets/generate/     # AI asset generation trigger UI
-│   ├── 📂 api/                      # API routes (17 total)
+│   ├── 📂 coaches/[slug]/page.tsx   # Coach detail page (generateStaticParams + generateMetadata + 404) — added in audit remediation
+│   ├── 📂 programs/[slug]/page.tsx  # Program detail page (same pattern) — added in audit remediation
+│   ├── 📂 stories/[slug]/page.tsx   # Story detail page (same pattern) — added in audit remediation
+│   ├── 📂 api/                      # API routes (13 total)
 │   │   ├── auth/[...nextauth]/      # Auth.js v5 catch-all
 │   │   ├── checkout/                # Stripe Checkout Session creation
 │   │   ├── stripe/{webhook,portal}/  # Stripe webhook + customer portal
 │   │   ├── inngest/                 # Inngest serve handler
 │   │   ├── admin/assets/generate/  # Admin-only AI asset trigger
+│   │   ├── health/                  # Dockerfile HEALTHCHECK endpoint (200 OK) — added in audit remediation
 │   │   └── {programs,coaches,stories}/  # Read API + [slug] detail routes
 │   ├── booking/confirm/page.tsx     # Post-submission confirmation
 │   ├── layout.tsx                   # Root layout: 4 fonts + metadata
@@ -317,7 +322,7 @@ Layer 4  src/lib/                → Infrastructure: Drizzle, Auth.js, Inngest, 
 ├── 📂 inngest/functions/            # trial-requested (3 steps) + asset-generate (3 steps)
 ├── 📂 tests/
 │   ├── setup.ts                     # Vitest setup (jest-dom + matchMedia + IntersectionObserver mocks)
-│   ├── unit/                        # 7 test files (brand tokens, hero reel, queries, schemas, actions)
+│   ├── unit/                        # 9 test files (brand tokens, hero reel, queries, schemas, published-filter, hydration)
 │   └── e2e/                         # 8 Playwright specs (hero, programs, coaches, stories, booking, memberships, auth, seo)
 ├── proxy.ts                         # Edge middleware (Next.js 16 — renamed from middleware.ts)
 └── middleware.ts                    # DEPRECATED — use proxy.ts
@@ -478,16 +483,20 @@ erDiagram
 
 ### 6.3 Migration History
 
-| Migration                     | Tables Created                           | Date    |
-| ----------------------------- | ---------------------------------------- | ------- |
-| `0000_majestic_triathlon.sql` | 10 tables (all except subscriptions)     | Phase 5 |
-| `0001_colossal_anthem.sql`    | subscriptions + subscription_status enum | Phase 7 |
+| Migration                                | Tables / Changes                                            | Date    |
+| ---------------------------------------- | ----------------------------------------------------------- | ------- |
+| `0000_majestic_triathlon.sql`            | 10 tables (all except subscriptions)                        | Phase 5 |
+| `0001_colossal_anthem.sql`               | subscriptions + subscription_status enum                    | Phase 7 |
+| `0002_enforce_published_notnull.sql`     | `NOT NULL` on `published` + `order` columns (coaches/programs/stories) | Audit remediation (H4 fix) |
 
 ### 6.4 Persistence Strategy
 
 - **Connection pooling:** `postgres()` with `max: 10`, `idle_timeout: 20`, `prepare: false` (PgBouncer-compatible)
 - **Graceful fallback:** All queries try DB first, fall back to static data in `features/*/data.ts`
+- **Published filter:** All public queries filter by `published: true` (H2 fix) — unpublished records never reach the API
 - **Idempotent inserts:** `ON CONFLICT DO NOTHING` used in seed + booking
+- **NOT NULL enforcement:** `published` and `order` columns are `.notNull()` (migration 0002). Drizzle inferred types match Zod schemas — no `as unknown as` casts needed.
+- **Zod runtime validation:** DB results are Zod-validated before returning (defense-in-depth for varchar→enum narrowing in `programs.goal`)
 - **Migrations:** Always `drizzle-kit generate` + `drizzle-kit migrate` — NEVER `db push` in production
 
 ---
@@ -522,15 +531,16 @@ All fonts loaded via `next/font/google` with `display: swap` + `variable` strate
 
 ### 7.3 Animations
 
-| Keyframe    | Duration            | Use Case                    |
-| ----------- | ------------------- | --------------------------- |
-| `pulse-cta` | 2.4s infinite       | Primary CTA radial glow     |
-| `marquee`   | 38s linear infinite | Hero bottom ticker          |
-| `ken-burns` | 9s forwards         | Active hero reel frame      |
-| `wave`      | 0.7s infinite       | Mute toggle equalizer bars  |
-| `rec-blink` | 1.5s infinite       | "REEL · LIVE" indicator dot |
+| Keyframe        | Duration            | Use Case                    |
+| --------------- | ------------------- | --------------------------- |
+| `pulse-cta`     | 2.4s infinite       | Primary CTA radial glow     |
+| `marquee`       | 38s linear infinite | Hero bottom ticker          |
+| `ken-burns`     | 9s forwards         | Active hero reel frame      |
+| `wave`          | 0.7s infinite       | Mute toggle equalizer bars  |
+| `rec-blink`     | 1.5s infinite       | "REEL · LIVE" indicator dot |
+| `progress-fill` | `frameDurationMs` linear forwards | Hero reel progress bar (M8 fix — CSS-driven, zero React re-renders) |
 
-All animations use `transform` + `opacity` only (compositor-friendly). `prefers-reduced-motion` disables all.
+All animations use `transform` + `opacity` only (compositor-friendly), except `progress-fill` which animates `width` on a 1px indicator (negligible repaint cost). `prefers-reduced-motion` disables all.
 
 ---
 
@@ -547,10 +557,13 @@ All animations use `transform` + `opacity` only (compositor-friendly). `prefers-
 | Passwords hashed            | bcrypt cost factor 12                                                                     |
 | Webhook integrity           | Stripe signature verification via `constructEvent(rawBody, sig, secret)`                  |
 | SSRF prevention             | `downloadImage()` validates hostname against Replicate allowlist                          |
-| CSP                         | `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'` |
+| CSP                         | `default-src 'self'; script-src 'self' 'unsafe-inline'` (NO `'unsafe-eval'` — H1 fix). `'unsafe-inline'` required for Next.js App Router inline runtime. |
 | HSTS                        | `max-age=63072000; includeSubDomains; preload`                                            |
 | Frame protection            | `X-Frame-Options: DENY` (via `frame-ancestors 'none'`)                                    |
 | Content sniffing            | `X-Content-Type-Options: nosniff`                                                         |
+| Published filter            | All public queries filter by `published: true` (H2 fix) — unpublished records never reach the API |
+| UUID validation             | All server-action `id` params validated via `z.string().uuid()` (M5 fix)                  |
+| Error routing               | Server actions return `field` property (from Zod `issues[0].path[0]`) for client-side error routing (M4 fix) |
 
 ### 8.2 Threat Model
 
@@ -588,12 +601,12 @@ All animations use `transform` + `opacity` only (compositor-friendly). `prefers-
 
 ### 10.1 Test Distribution
 
-| Type        | Location                            | Count                         | Runner                | Coverage                                                          |
-| ----------- | ----------------------------------- | ----------------------------- | --------------------- | ----------------------------------------------------------------- |
-| **Unit**    | `src/tests/unit/**/*.test.{ts,tsx}` | 7 files                       | Vitest + jsdom        | Brand tokens, hero reel, stories carousel, goal selector, queries |
-| **Feature** | `src/features/**/*.test.{ts,tsx}`   | 6 files                       | Vitest + jsdom        | Schemas (booking, coaches, memberships, assets), actions          |
-| **E2E**     | `src/tests/e2e/*.spec.ts`           | 8 files                       | Playwright (Chromium) | Hero, programs, coaches, stories, booking, memberships, auth, SEO |
-| **Total**   | —                                   | **13 test files / 153 tests** | —                     | —                                                                 |
+| Type        | Location                            | Count                          | Runner                | Coverage                                                          |
+| ----------- | ----------------------------------- | ------------------------------ | --------------------- | ----------------------------------------------------------------- |
+| **Unit**    | `src/tests/unit/**/*.test.{ts,tsx}` | 9 files                        | Vitest + jsdom        | Brand tokens, hero reel, stories carousel, goal selector, queries, published-filter, hydration |
+| **Feature** | `src/features/**/*.test.{ts,tsx}`   | 7 files                        | Vitest + jsdom        | Schemas (booking, coaches, memberships, assets), actions (booking, coaches) |
+| **E2E**     | `src/tests/e2e/*.spec.ts`           | 8 files                        | Playwright (Chromium) | Hero, programs, coaches, stories, booking, memberships, auth, SEO |
+| **Total**   | —                                   | **16 test files / 183 tests**  | —                     | —                                                                 |
 
 ### 10.2 Test Patterns
 
@@ -601,8 +614,10 @@ All animations use `transform` + `opacity` only (compositor-friendly). `prefers-
 | ------------------------- | ------------------------------------------------------------------------------------------------ |
 | **Mock factories**        | `getMockTrialRequest(overrides?)` — DRY test data                                                |
 | **Graceful degradation**  | `vi.mock('@/lib/db/client', () => { throw new Error('DB unavailable') })` — simulates missing DB |
+| **DB-available mock**     | `createMockChain(allRows, publishedRows)` — chainable Drizzle builder mock (used in `queries-published-filter.test.ts`) |
 | **SDK constructor mocks** | Use `class` syntax, not arrow functions — arrow functions can't be `new`-ed                      |
 | **Fake timers**           | `vi.useFakeTimers()` + `vi.advanceTimersByTime(ms)` for time-dependent hooks                     |
+| **TDD regression tests**  | Write failing test FIRST (RED), then implement fix (GREEN) — used for H2 + M5 fixes              |
 
 ### 10.3 Pre-PR / Pre-Deploy Checklist
 
@@ -703,7 +718,7 @@ pnpm dev
 | `pnpm build`            | Production build                         |
 | `pnpm typecheck`        | `tsc --noEmit` (must pass — strict mode) |
 | `pnpm lint`             | ESLint flat config (9.x)                 |
-| `pnpm test`             | Vitest run (153 unit tests)              |
+| `pnpm test`             | Vitest run (183 unit tests, 16 files)    |
 | `pnpm test:e2e`         | Playwright (requires `pnpm dev` running) |
 | `pnpm db:reset`         | drizzle migrate + seed                   |
 | `pnpm drizzle:generate` | Generate migration from schema diff      |
@@ -728,6 +743,20 @@ pnpm dev
 
 ## 13. Known Issues & Outstanding Tasks
 
+### 13.1 Operational Items (Require Deployment Env Access — Post-Audit Remediation)
+
+These items were identified in the code audit (see `.audit-report.md`) but cannot be fixed in code:
+
+| Priority | Issue | Impact | Status |
+| -------- | ----- | ------ | ------ |
+| **P0** | Deploy with production build (`docker compose -f docker-compose.prod.yml up -d`) — NOT `pnpm dev` | Site runs in dev mode (5-10× slower, source maps exposed, TTFB 350ms vs <100ms) | Open |
+| **P0** | Set `NEXT_PUBLIC_APP_URL=https://your-domain.com` in deployment env | Sitemap + robots publish `localhost` URLs; Google indexes wrong URLs | Open |
+| **P1** | Configure Stripe env vars + create 4 products/prices + update `MEMBERSHIP_TIERS`/`DROP_IN_PACK` in `data.ts` | Checkout returns 503 NOT_CONFIGURED; memberships non-functional | Open |
+| **P1** | Apply migration 0002 (`pnpm drizzle:migrate`) in deployment env | `published`/`order` columns remain nullable at DB level | Open |
+| **P2** | Move Cloudflare `Disallow: /admin/` into CF-managed robots block | Some crawlers may ignore the app's `Disallow: /admin/` directive | Open |
+
+### 13.2 Future Sprint Items (P3 — Code Quality / Accessibility / Observability)
+
 | Priority | Issue                                                   | Impact         | Status |
 | -------- | ------------------------------------------------------- | -------------- | ------ |
 | **P3**   | CoachFlipCard back-face link keyboard focus handler     | Accessibility  | Open   |
@@ -742,6 +771,26 @@ pnpm dev
 | **P3**   | PII redaction in Inngest function logs (production)     | Privacy        | Open   |
 | **P3**   | Bundle size reduction (route-level code splitting)      | Performance    | Open   |
 | **P3**   | Full Lighthouse CI run in GitHub Actions                | QA             | Open   |
+| **P3**   | Change `programs.goal` from `varchar` to `pgEnum`       | Type safety    | Open   |
+| **P3**   | Self-host hero images (replace picsum.photos)           | Performance    | Open   |
+| **P3**   | Implement list pages (`/coaches`, `/programs`, `/stories`) | UX             | Open   |
+
+### 13.3 Code-Fixable Items Resolved in Audit Remediation (2026-07-03)
+
+| Finding | Fix Applied | TDD? |
+|---------|-------------|------|
+| C1 (partial) | Created `/api/health` route for Dockerfile HEALTHCHECK | New route |
+| C3 | Created 3 detail pages (`/coaches/[slug]`, `/programs/[slug]`, `/stories/[slug]`) | New pages |
+| H1 | Removed `'unsafe-eval'` from CSP + fixed inline comment | Config |
+| H2 | Added `.where(eq(published, true))` to all public queries | ✅ 11 TDD tests |
+| H4 | Added `.notNull()` to 5 columns + migration 0002 + removed 20 `as unknown as` casts + Zod validation | Typecheck-driven |
+| M1 | `metadataBase` + OG `url` use `process.env.NEXT_PUBLIC_APP_URL` | Config |
+| M4 | Added `field` to `TrialRequestResponseSchema` + populate from Zod path | Schema + UI |
+| M5 | Added `IdSchema = z.string().uuid()` to all coach actions | ✅ 18 TDD tests |
+| M7 | Replaced `@ts-expect-error` with `instanceof Readable` narrowing | Type fix |
+| M8 | CSS `@keyframes progress-fill` + `key={current}` replaces `setProgress` | ✅ TDD (updated tests) |
+| L1 | Updated test count 153→183 across 6 docs | Doc update |
+| L5 | Removed dead `/#schedule` nav item | UI fix |
 
 ---
 
@@ -776,8 +825,13 @@ pnpm dev
 | **Idempotency Key**      | UUID v4 used to prevent duplicate bookings on double-submit                         |
 | **Honeypot**             | Hidden `company_website` field on booking form — bots fill it, humans don't         |
 | **PgBouncer**            | PostgreSQL connection pooler — requires `prepare: false` in postgres client         |
+| **Published Filter**     | `.where(eq(*.published, true))` on all public queries — unpublished records never reach the API (H2 fix) |
+| **NOT NULL Enforcement** | `.default(X).notNull()` on `published`/`order` columns — Drizzle inferred types match Zod schemas, no casts needed (H4 fix) |
+| **Field-Aware Errors**   | Server actions return `field` property (from Zod `issues[0].path[0]`) for client-side error routing (M4 fix) |
+| **CSS Progress Fill**    | `@keyframes progress-fill` + `key={current}` — zero React re-renders for the hero progress bar (M8 fix) |
+| **IdSchema**             | `z.string().uuid()` validation on server-action `id` params (M5 fix)               |
 
 ---
 
 _Built by discipline. Forged in iron._
-_Document generated 2026-07-03. Last quality gate: 153/153 tests, 0 vulnerabilities, 24 routes._
+_Document generated 2026-07-03. Last quality gate: 183/183 tests (16 files), 0 vulnerabilities, 24+ routes. Post-audit remediation applied (3 Critical + 4 High + 8 Medium findings addressed)._

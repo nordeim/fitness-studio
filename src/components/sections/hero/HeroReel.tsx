@@ -71,11 +71,11 @@ export function HeroReel() {
 
   const {
     currentFrame,
-    progress,
     muted,
     isPlaying,
     toggleMute,
     containerRef,
+    frameDurationMs,
   } = useHeroReel({
     frameCount: REEL_FRAMES.length,
     frameDurationMs: 5000,
@@ -154,7 +154,7 @@ export function HeroReel() {
       <ReelProgress
         current={currentFrame}
         total={REEL_FRAMES.length}
-        progress={progress}
+        frameDurationMs={frameDurationMs}
       />
 
       {/* 5. Reel control (top-right, below progress) */}

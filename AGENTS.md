@@ -11,7 +11,7 @@ pnpm dev                                  # Dev server on :3000 (Turbopack)
 pnpm build                                # Production build
 pnpm typecheck                            # tsc --noEmit (must pass — strict mode)
 pnpm lint                                 # eslint . (flat config, 9.x)
-pnpm test                                 # vitest run (153 unit tests)
+pnpm test                                 # vitest run (183 unit tests)
 pnpm test:e2e                             # playwright (requires `pnpm dev` running)
 pnpm db:reset                             # drizzle migrate + seed (needs .env.local)
 pnpm db:seed                              # seed only (idempotent via ON CONFLICT)
@@ -69,7 +69,10 @@ Lower layers may never import from higher layers. Domain layer (`src/features/*/
 - **NEVER use `db push`** in production — always `drizzle-kit generate` + review + `migrate`.
 - **`postgres()` defers connection** — safe to eager instantiate without breaking the build.
 - **`prepare: false`** on the postgres client — required for PgBouncer pooled connections.
-- **Migrations** are in `drizzle/` — 2 files (0000 + 0001). Generate new ones with `pnpm drizzle:generate`.
+- **Migrations** are in `drizzle/` — 3 files (0000 + 0001 + 0002). Generate new ones with `pnpm drizzle:generate`.
+- **`.notNull()` on `.default()` columns** — `published` and `order` columns on coaches/programs/stories are `.default(X).notNull()`. Without `.notNull()`, Drizzle infers `T | null` which mismatches Zod's `z.boolean()` / `z.number()`, forcing `as unknown as` casts. Always pair `.default()` with `.notNull()` for semantically non-nullable columns.
+- **Public queries filter by `published: true`** — all `getCoaches`/`getPrograms`/`getStories` queries add `.where(eq(*.published, true))`. Unpublished records never reach the public API.
+- **DB results Zod-validated** — `programs/queries.ts` validates DB results via `ProgramArraySchema.safeParse()` before returning (defense-in-depth for varchar→enum narrowing).
 
 ## Graceful Degradation Pattern
 
@@ -104,6 +107,10 @@ The Zod-validated `env` module (`src/lib/env.ts`) is for app-level code that nee
 - **Stripe webhook:** Reads raw body via `request.text()` — do NOT use `request.json()` (breaks signature verification).
 - **SSRF:** `downloadImage()` in `lib/ai/replicate.ts` validates hostname against `['replicate.delivery', 'replicate.com']` before fetching.
 - **Rate limits:** Booking (5/min), Checkout (10/min), Auth (5/10min). Upstash Redis with no-op fallback when not configured (fails open).
+- **CSP:** `script-src 'self' 'unsafe-inline'` — NO `'unsafe-eval'` (H1 fix). Next.js 16 production builds do not require `'unsafe-eval'`. `'unsafe-inline'` is required for the App Router inline runtime.
+- **UUID validation:** Server actions accepting an `id` param must validate via `z.string().uuid()` BEFORE any DB call (M5 fix). See `IdSchema` in `features/coaches/actions.ts`.
+- **Server action responses:** Return `{ success, code, message, field? }` — `field` is populated from Zod `issues[0].path[0]` so the client can route errors to the correct form field without substring matching (M4 fix).
+- **`NEXT_PUBLIC_APP_URL` in production:** Must be set in the deployment env. Used by `metadataBase`, OG `url`, `sitemap.ts`, `robots.ts`. Without it, these publish `localhost` URLs (M1 fix).
 
 ## File Locations (non-obvious)
 
@@ -114,6 +121,10 @@ The Zod-validated `env` module (`src/lib/env.ts`) is for app-level code that nee
 - **Static fallback data:** `src/features/{programs,coaches,stories}/data.ts` — used when DB unavailable
 - **Design tokens:** `src/app/globals.css` `@theme` block (NOT a separate file)
 - **Admin routes:** `src/app/admin/(guarded)/` — route group excludes `/admin/login` from the auth layout
+- **Detail pages:** `src/app/{coaches,programs,stories}/[slug]/page.tsx` — Server Components with `generateStaticParams` + `generateMetadata` + `notFound()` (added in audit remediation)
+- **Health check:** `src/app/api/health/route.ts` — lightweight 200 endpoint for Dockerfile HEALTHCHECK
+- **Published-filter tests:** `src/tests/unit/queries-published-filter.test.ts` — regression tests for H2 (mocks DB-available path)
+- **Coach action tests:** `src/features/coaches/actions.test.ts` — regression tests for M5 (UUID validation)
 
 ## Build vs Runtime
 
@@ -131,5 +142,23 @@ If you add a new route that imports a module which throws when env vars are miss
 - Don't import `lib/storage/r2.ts` or `lib/env.ts` in client components — they'll crash the browser.
 - Don't call `setState` synchronously in a `useEffect` body — derive state instead.
 - Don't use `middleware.ts` — rename to `proxy.ts` and export `proxy`.
-- Don't use placeholder UUIDs like `00000000-0000-0000-0000-000000000001` — Zod 4 rejects them. Use valid v4 format.
+- Don't use placeholder UUIDs like `00000000-0000-0000-0000-000000000001` — Zod 4 rejects them. Use valid v4 format like `a1000000-0000-4000-8000-000000000001`.
 - Don't use `bg-${color}-500` dynamic class interpolation — Tailwind purges it.
+- Don't use `as unknown as` casts in queries — fix the schema (add `.notNull()`) instead (H4 fix).
+- Don't use `@ts-expect-error` / `@ts-ignore` / `@ts-nocheck` — use proper type narrowing (M7 fix).
+- Don't use substring matching (`message.includes('email')`) for form error routing — use the `field` property from the server response (M4 fix).
+- Don't include `'unsafe-eval'` in the CSP — Next.js 16 production builds don't need it (H1 fix).
+- Don't hardcode `localhost:3000` in metadata — use `process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'` (M1 fix).
+- Don't use `setProgress` in `setInterval` for progress bars — use CSS `@keyframes` + `key={current}` (M8 fix).
+- Don't write public queries without `.where(eq(*.published, true))` — unpublished records would leak (H2 fix).
+- Don't accept `id: string` in server actions without `z.string().uuid()` validation (M5 fix).
+
+## Outstanding Operational Items (Deployment Env — Not Code-Fixable)
+
+| # | Item | Action |
+|---|------|--------|
+| 1 | **Deploy with prod build** (C1) | Use `docker compose -f docker-compose.prod.yml up -d`. Don't run `pnpm dev` in production. |
+| 2 | **Set `NEXT_PUBLIC_APP_URL`** (C2) | Set to `https://your-domain.com` in deployment env. Used by sitemap, robots, metadataBase, OG. |
+| 3 | **Configure Stripe** (H3) | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` + create 4 products/prices + update `MEMBERSHIP_TIERS`/`DROP_IN_PACK` in `data.ts`. |
+| 4 | **Apply migration 0002** | Run `pnpm drizzle:migrate` in deployment env. Adds `NOT NULL` to `published` + `order` columns. |
+| 5 | **Cloudflare robots** (M6) | Move `Disallow: /admin/` into the Cloudflare-managed block, or disable CF managed robots. |
