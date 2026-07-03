@@ -6,7 +6,11 @@ Awesome meticulous job so far. Please keep up the good work. Now, please meticul
 
 Awesome meticulous job so far. Please keep up the good work. Now, please meticulously create an updated v2 tar archive of the entire (remediated) codebase, including the updated docs and SKILL.md but excluding the `node_modules` , `.next` , `skills` and `.git` folders, so I can download and use it to refresh my GitHub repo.
 
-Awesome meticulous job so far. Please keep up the good work. Now, please meticulously create an updated v3 tar archive of the entire (remediated) codebase, including the updated docs and SKILL.md but excluding the `node_modules` , `.next` , `skills` and `.git` folders, so I can download and use it to refresh my GitHub repo.
+Awesome meticulous job so far. Please keep up the good work. Now, please meticulously create a tar archive of the entire (remediated) codebase, including the updated docs and SKILL.md but excluding the `node_modules` , `.next` , `skills` and `.git` folders, so I can download and use it to refresh my GitHub repo.
+
+---
+
+Awesome meticulous job so far. Please keep up the good work. Now, please meticulously plan to review and update @fitness-studio_SKILL.md using the included skill `skills/to-distill-project-into-skill/SKILL.md`
 
 ---
 
