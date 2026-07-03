@@ -100,14 +100,9 @@ function Stat({ stat, animate, delay }: StatProps) {
 
   return (
     <div className="border-l border-[var(--color-border)] pl-4">
-      {/* suppressHydrationWarning: toLocaleString() uses server locale for SSR, client locale for hydration.
-          The difference is cosmetic (e.g., "2,400" vs "2.400") and imperceptible during the count-up animation. */}
-      <div
-        suppressHydrationWarning
-        className="font-display text-5xl leading-none text-[var(--color-fg)] md:text-6xl"
-      >
+      <div className="font-display text-5xl leading-none text-[var(--color-fg)] md:text-6xl">
         {stat.prefix}
-        {displayValue.toLocaleString()}
+        {displayValue.toLocaleString('en-US')}
         {stat.suffix}
       </div>
       <div className="font-heading mt-3 text-sm tracking-wider text-[var(--color-accent)] uppercase">

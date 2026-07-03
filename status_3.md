@@ -409,4 +409,210 @@ The `resolution_fix.md` correctly diagnosed the _cause_ but prescribed a _subopt
 
 ---
 
+The user wants me to review and validate feedback.md against the codebase. The feedback.md file challenges my previous fix of suppressHydrationWarning and argues for toLocaleString('en-US') instead. Let me carefully examine each claim.
+
+Key claims to validate:
+
+1. Claim: The component renders with animate={false}
+   - feedback.md says: "The error log explicitly shows the component is rendered with animate={false}"
+   - Let me check the error log and the actual component behavior.
+
+2. Claim: suppressHydrationWarning doesn't patch text content
+   - feedback.md says React won't attempt to patch mismatched text content when suppressHydrationWarning={true} is set
+   - This is about React's behavior for text nodes
+
+3. Claim: toLocaleString('en-US') is the optimal fix
+
+Let me read the error log again and the component code to verify these claims.
+I will meticulously validate every claim in feedback.md against the actual codebase and React documentation before determining the optimal path forward.
+
+# Todos
+
+[•] Phase 1: Validate Claim #1 — animate={false} from error log
+[ ] Phase 2: Validate Claim #2 — suppressHydrationWarning text-node behavior
+[ ] Phase 3: Validate Claim #3 — toLocaleString('en-US') as optimal fix
+[ ] Phase 4: Determine optimal fix and apply if needed
+[ ] Phase 5: Run quality gate
+Thought: 30ms
+Let me read the error log and the component code to verify the claims.
+→Read runtime_hydration_error.txt
+→Read src/components/sections/booking/StatBlock.tsx
+→Read src/components/sections/booking/BookingSection.tsx
+Thought: 10.2s
+Now let me validate the claims in feedback.md:
+
+Claim #1: "The error log explicitly shows the component is rendered with animate={false}"
+
+Looking at the error log (line 100):
+<Stat stat={{value:2400, ...}} animate={false} delay={100}>
+
+This is indeed in the error log. But wait — let me understand WHY animate={false}.
+
+Looking at the component code:
+animate={revealed && !reducedMotion}
+
+The animate prop is revealed && !reducedMotion. During SSR:
+
+- revealed comes from useReveal hook — this is a client-side hook that uses IntersectionObserver. On the server, revealed would be false (initial state).
+- reducedMotion comes from useReducedMotion hook — this is also a client-side hook. On the server, it would likely default to false.
+
+So during SSR: animate = false && !false = false
+
+This means on the server, animate is false, so:
+const [displayValue, setDisplayValue] = useState(() => (animate ? 0 : stat.value));
+On the server, displayValue = stat.value = 2400, which gets formatted as 2,400 (en-US).
+
+On the client during hydration:
+
+- revealed is still false (initial state before IntersectionObserver fires)
+- reducedMotion is false (default)
+- So animate is false
+- displayValue = stat.value = 2400, formatted as 2.400 (de-DE or similar)
+
+So the error log is correct — animate={false} during both SSR and initial client hydration. The number IS static during hydration. The feedback.md claim is ACCURATE.
+
+My earlier reasoning about the animation masking the visual difference was flawed. Since the number remains static throughout hydration, the locale formatting discrepancy between server and client would be immediately visible.
+
+Claim #2: suppressHydrationWarning doesn't patch text content
+
+React's documentation is explicit: when suppressHydrationWarning={true} is set on an element, React won't attempt to reconcile mismatched text content. This means the server-rendered text persists in the DOM without being updated to match the client's version. For this case, that would lock in 2,400 permanently.
+
+The claim checks out — React does abandon the client-side text node update when this flag is applied. While the result happens to be correct for this specific scenario (the server uses en-US locale), this approach is fundamentally relying on React's failure to patch rather than solving the underlying mismatch.
+
+Claim #3: toLocaleString('en-US') is the optimal fix
+
+Passing an explicit locale eliminates the hydration mismatch entirely. Both server and client will produce 2,400 consistently, so React hydrates normally without any warnings or suppressed updates. This is cleaner and more maintainable than the suppression approach.
+
+Verification of animate={false} behavior:
+
+The animate prop depends on revealed && !reducedMotion. During server-side rendering, revealed is false since the IntersectionObserver hasn't initialized yet. Similarly, reducedMotion defaults to false on the server. This means animate evaluates to false on both server and client during hydration, so the feedback.md claim about animate={false} is accurate — there's no animation masking the visual difference.
+
+Now I need to check whether suppressHydrationWarning actually prevents React from patching text content. The React documentation states that when this flag is true, React won't attempt to patch mismatched text content. This means the server-rendered text (2,400) would persist in the DOM while the client expects 2.400, creating a permanent mismatch rather than a brief visual discrepancy.
+
+The feedback.md claims are accurate: the animation doesn't mask the difference since animate={false} during hydration, and suppressHydrationWarning does prevent text patching. This makes toLocaleString('en-US') the superior approach—it eliminates the mismatch entirely by ensuring both environments produce identical output.
+
+# Todos
+
+[✓] Phase 1: Validate Claim #1 — animate={false} from error log
+[•] Phase 2: Validate Claim #2 — suppressHydrationWarning text-node behavior
+[ ] Phase 3: Validate Claim #3 — toLocaleString('en-US') as optimal fix
+[ ] Phase 4: Determine optimal fix and apply if needed
+[ ] Phase 5: Run quality gate
+Thought: 180ms
+Let me verify the React documentation claim about suppressHydrationWarning and text nodes.
+%WebFetch https://react.dev/reference/react-dom/client/hydrateRoot#suppressing-unavoidable-hydration-mismatch-errors
+✱Grep "useReveal" in src/hooks (3 matches)
+Thought: 1.4s
+The React documentation confirms the claim:When suppressHydrationWarning={true} is set, React will not attempt to patch mismatched text content.
+
+From the docs:
+
+> "This only works one level deep, and is intended to be an escape hatch. Don't overuse it. React will not attempt to patch mismatched text content."
+
+This confirms feedback.md's Claim #2 is ACCURATE.
+
+Now let me also verify Claim #1 by checking the useReveal hook to confirm that revealed is false on the server (which would make animate={false}).
+→Read src/hooks/useReveal.ts
+Thought: 3.7s
+The useReveal hook confirms:
+
+- revealed starts as false (line 35: useState(false))
+- The IntersectionObserver is set up in a useEffect (line 37), which only runs on the client
+- On the server, revealed is false
+
+So during SSR: animate = revealed && !reducedMotion = false && !false = false
+
+This confirms feedback.md's Claim #1: animate={false} during SSR, and the error log shows this is the case during hydration too (client's initial render also has animate={false} before the IntersectionObserver fires).
+
+Now I have validated all three claims:
+
+1. Claim #1 (animate={false}): ✅ ACCURATE - The error log shows animate={false}, and the code confirms this is the case during both SSR and initial client hydration.
+
+2. Claim #2 (suppressHydrationWarning doesn't patch text content): ✅ ACCURATE - React docs confirm: "React will not attempt to patch mismatched text content."
+
+3. Claim #3 (toLocaleString('en-US') is optimal): ✅ VALID - This is the deterministic fix that eliminates the mismatch at the source.
+
+The feedback.md is correct on all counts. I should apply the recommended fix: revert suppressHydrationWarning and use toLocaleString('en-US').
+
+# Todos
+
+[✓] Phase 1: Validate Claim #1 — animate={false} from error log
+[✓] Phase 2: Validate Claim #2 — suppressHydrationWarning text-node behavior
+[✓] Phase 3: Validate Claim #3 — toLocaleString('en-US') as optimal fix
+[•] Phase 4: Apply fix — revert suppressHydrationWarning, use toLocaleString('en-US')
+[ ] Phase 5: Run quality gate
+Thought: 96ms
+All three claims are validated as accurate. Let me now apply the fix.
+All three claims validated. Applying the fix:
+← Edit src/components/sections/booking/StatBlock.tsx
+}, [animate, stat.value, delay]);}, [animate, stat.value, delay]);
+
+return (return (
+  <div className="border-l border-[var(--color-border)] pl-4">  <div className="border-l border-[var(--color-border)] pl-4">
+    {/* suppressHydrationWarning: toLocaleString() uses server locale for SSR, client locale for hydration.    <div className="font-display text-5xl leading-none text-[var(--color-fg)] md:text-6xl">
+        The difference is cosmetic (e.g., "2,400" vs "2.400") and imperceptible during the count-up animation. */}
+    <div
+      suppressHydrationWarning
+      className="font-display text-5xl leading-none text-[var(--color-fg)] md:text-6xl"
+    >
+      {stat.prefix}
+      {displayValue.toLocaleString()}
+      {stat.suffix}      {stat.prefix}
+    </div>      {displayValue.toLocaleString('en-US')}
+    <div className="font-heading mt-3 text-sm tracking-wider text-[var(--color-accent)] uppercase">      {stat.suffix}
+      {stat.label}    </div>
+    <div className="font-heading mt-3 text-sm tracking-wider text-[var(--color-accent)] uppercase">
+      {stat.label}
+Thought: 144ms
+Now let me run the quality gate.
+# Todos
+[✓] Phase 1: Validate Claim #1 — animate={false} from error log
+[✓] Phase 2: Validate Claim #2 — suppressHydrationWarning text-node behavior
+[✓] Phase 3: Validate Claim #3 — toLocaleString('en-US') as optimal fix
+[✓] Phase 4: Apply fix — revert suppressHydrationWarning, use toLocaleString('en-US')
+[•] Phase 5: Run quality gate
+Thought: 246ms
+Let me run the quality gate: typecheck, lint, test, build.
+$ cd /home/project/fitness-studio && pnpm typecheck && pnpm lint && pnpm test 2>&1 | tail -20
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+> fitness-studio@0.1.0 typecheck /home/project/fitness-studio
+> tsc --noEmit
+
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+> fitness-studio@0.1.0 lint /home/project/fitness-studio
+> eslint .
+
+…
+Click to expand
+Thought: 275ms
+All tests pass. Let me also verify the final state of the file.
+→Read src/components/sections/booking/StatBlock.tsx [limit=10, offset=100]
+Thought: 222ms
+The fix is applied correctly. Let me update the todo list and summarize.
+
+# Todos
+
+[✓] Phase 1: Validate Claim #1 — animate={false} from error log
+[✓] Phase 2: Validate Claim #2 — suppressHydrationWarning text-node behavior
+[✓] Phase 3: Validate Claim #3 — toLocaleString('en-US') as optimal fix
+[✓] Phase 4: Apply fix — revert suppressHydrationWarning, use toLocaleString('en-US')
+[✓] Phase 5: Run quality gate
+Thought: 48ms
+All done. Let me summarize the validation and the fix.
+Validation Summary
+All three claims in feedback.md validated as accurate:
+
+# Claim Validation
+
+1 animate={false} during SSR + hydration ✅ Confirmed — useReveal.ts:35 initializes revealed = false; IntersectionObserver fires only in useEffect (client). Error log line 100 shows animate={false}.
+2 suppressHydrationWarning doesn't patch text nodes ✅ Confirmed — React docs: "React will not attempt to patch mismatched text content" when suppressHydrationWarning={true}. The server-rendered 2,400 would remain permanently in the DOM.
+3 toLocaleString('en-US') is the optimal fix ✅ Confirmed — Eliminates the mismatch at the source. Server and client both produce 2,400. Deterministic, no escape hatch needed.
+What Changed
+src/components/sections/booking/StatBlock.tsx:105 — reverted suppressHydrationWarning attribute and replaced displayValue.toLocaleString() with displayValue.toLocaleString('en-US').
+Quality gate passed: typecheck ✅ lint ✅ test (183/183) ✅
+
+---
+
 https://chat.qwen.ai/s/031cdfb9-fa4d-4947-abad-d09eddf6ed4c?fev=0.2.70
