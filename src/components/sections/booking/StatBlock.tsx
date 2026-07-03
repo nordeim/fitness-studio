@@ -40,13 +40,7 @@ export function StatBlock({ stats, className }: StatBlockProps) {
   const reducedMotion = useReducedMotion();
 
   return (
-    <div
-      ref={ref}
-      className={cn(
-        'grid grid-cols-2 gap-6 md:grid-cols-4 md:gap-8',
-        className,
-      )}
-    >
+    <div ref={ref} className={cn('grid grid-cols-2 gap-6 md:grid-cols-4 md:gap-8', className)}>
       {stats.map((stat, i) => (
         <Stat
           key={stat.label}
@@ -106,16 +100,21 @@ function Stat({ stat, animate, delay }: StatProps) {
 
   return (
     <div className="border-l border-[var(--color-border)] pl-4">
-      <div className="font-display text-5xl leading-none text-[var(--color-fg)] md:text-6xl">
+      {/* suppressHydrationWarning: toLocaleString() uses server locale for SSR, client locale for hydration.
+          The difference is cosmetic (e.g., "2,400" vs "2.400") and imperceptible during the count-up animation. */}
+      <div
+        suppressHydrationWarning
+        className="font-display text-5xl leading-none text-[var(--color-fg)] md:text-6xl"
+      >
         {stat.prefix}
         {displayValue.toLocaleString()}
         {stat.suffix}
       </div>
-      <div className="mt-3 font-heading text-sm uppercase tracking-wider text-[var(--color-accent)]">
+      <div className="font-heading mt-3 text-sm tracking-wider text-[var(--color-accent)] uppercase">
         {stat.label}
       </div>
       {stat.sublabel && (
-        <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.15em] text-[var(--color-muted)]">
+        <div className="mt-1 font-mono text-[10px] tracking-[0.15em] text-[var(--color-muted)] uppercase">
           {stat.sublabel}
         </div>
       )}
