@@ -1,0 +1,267 @@
+$ pnpm typecheck
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+> fitness-studio@0.1.0 typecheck /home/project/fitness-studio
+> tsc --noEmit
+
+$ pnpm lint
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+> fitness-studio@0.1.0 lint /home/project/fitness-studio
+> eslint .
+
+$ pnpm test
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+> fitness-studio@0.1.0 test /home/project/fitness-studio
+> vitest run
+
+
+ RUN  v4.1.9 /home/project/fitness-studio
+
+ ✓ src/tests/unit/stories-carousel.test.ts (9 tests) 71ms
+ ✓ src/tests/unit/goal-selector.test.tsx (5 tests) 425ms
+     ✓ renders all 5 goal options  310ms
+ ✓ src/tests/unit/queries-published-filter.test.ts (11 tests) 26ms
+ ✓ src/tests/unit/hero-reel.test.ts (8 tests) 65ms
+stderr | src/features/booking/actions.test.ts > submitTrialRequest > valid input returns success
+[submitTrialRequest] DB insert failed (continuing with Inngest): Error: [vitest] There was an error when mocking a module. If you are using "vi.mock" factory, make sure there are no top level variables inside, since this call is hoisted to top of the file. Read more: https://vitest.dev/api/vi.html#vi-mock
+    at createHelpfulError (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:189:16)
+    at ManualMockedModule.resolve (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:163:10)
+    at VitestMocker.callFunctionMock (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:319:32)
+    ... 5 lines matching cause stack trace ...
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at submitTrialRequest (/home/project/fitness-studio/src/features/booking/actions.ts:78:20) {
+  cause: Error: DB unavailable in test
+      at /home/project/fitness-studio/src/features/booking/actions.test.ts:25:9
+      at ManualMockedModule.factory (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/test.DNmyFkvJ.js:3569:78)
+      at ManualMockedModule.resolve (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:161:21)
+      at VitestMocker.callFunctionMock (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:319:32)
+      at file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:402:23
+      at Traces.$ (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/traces.DT5aQ62U.js:142:27)
+      at VitestMocker.requestWithMockedModule (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:367:21)
+      at VitestModuleRunner.cachedRequest (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:568:31)
+      at request (file:///home/project/fitness-studio/node_modules/.pnpm/vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0/node_modules/vite/dist/node/module-runner.js:1217:76)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+}
+
+stderr | src/features/booking/actions.test.ts > submitTrialRequest > fires Inngest event on success
+[submitTrialRequest] DB insert failed (continuing with Inngest): Error: [vitest] There was an error when mocking a module. If you are using "vi.mock" factory, make sure there are no top level variables inside, since this call is hoisted to top of the file. Read more: https://vitest.dev/api/vi.html#vi-mock
+    at createHelpfulError (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:189:16)
+    at ManualMockedModule.resolve (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:163:10)
+    at VitestMocker.callFunctionMock (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:319:32)
+    ... 5 lines matching cause stack trace ...
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at submitTrialRequest (/home/project/fitness-studio/src/features/booking/actions.ts:78:20) {
+  cause: Error: DB unavailable in test
+      at /home/project/fitness-studio/src/features/booking/actions.test.ts:25:9
+      at ManualMockedModule.factory (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/test.DNmyFkvJ.js:3569:78)
+      at ManualMockedModule.resolve (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:161:21)
+      at VitestMocker.callFunctionMock (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:319:32)
+      at file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:402:23
+      at Traces.$ (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/traces.DT5aQ62U.js:142:27)
+      at VitestMocker.requestWithMockedModule (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:367:21)
+      at VitestModuleRunner.cachedRequest (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:568:31)
+      at request (file:///home/project/fitness-studio/node_modules/.pnpm/vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0/node_modules/vite/dist/node/module-runner.js:1217:76)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+}
+
+stderr | src/features/booking/actions.test.ts > submitTrialRequest > succeeds even when DB is unavailable (graceful fallback)
+[submitTrialRequest] DB insert failed (continuing with Inngest): Error: [vitest] There was an error when mocking a module. If you are using "vi.mock" factory, make sure there are no top level variables inside, since this call is hoisted to top of the file. Read more: https://vitest.dev/api/vi.html#vi-mock
+    at createHelpfulError (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:189:16)
+    at ManualMockedModule.resolve (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:163:10)
+    at VitestMocker.callFunctionMock (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:319:32)
+    ... 5 lines matching cause stack trace ...
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at submitTrialRequest (/home/project/fitness-studio/src/features/booking/actions.ts:78:20) {
+  cause: Error: DB unavailable in test
+      at /home/project/fitness-studio/src/features/booking/actions.test.ts:25:9
+      at ManualMockedModule.factory (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/test.DNmyFkvJ.js:3569:78)
+      at ManualMockedModule.resolve (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:161:21)
+      at VitestMocker.callFunctionMock (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:319:32)
+      at file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:402:23
+      at Traces.$ (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/traces.DT5aQ62U.js:142:27)
+      at VitestMocker.requestWithMockedModule (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:367:21)
+      at VitestModuleRunner.cachedRequest (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:568:31)
+      at request (file:///home/project/fitness-studio/node_modules/.pnpm/vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0/node_modules/vite/dist/node/module-runner.js:1217:76)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+}
+
+stderr | src/features/booking/actions.test.ts > submitTrialRequest > succeeds even when Inngest is unavailable (graceful fallback)
+[submitTrialRequest] DB insert failed (continuing with Inngest): Error: [vitest] There was an error when mocking a module. If you are using "vi.mock" factory, make sure there are no top level variables inside, since this call is hoisted to top of the file. Read more: https://vitest.dev/api/vi.html#vi-mock
+    at createHelpfulError (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:189:16)
+    at ManualMockedModule.resolve (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:163:10)
+    at VitestMocker.callFunctionMock (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:319:32)
+    ... 5 lines matching cause stack trace ...
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at submitTrialRequest (/home/project/fitness-studio/src/features/booking/actions.ts:78:20) {
+  cause: Error: DB unavailable in test
+      at /home/project/fitness-studio/src/features/booking/actions.test.ts:25:9
+      at ManualMockedModule.factory (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/test.DNmyFkvJ.js:3569:78)
+      at ManualMockedModule.resolve (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:161:21)
+      at VitestMocker.callFunctionMock (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:319:32)
+      at file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:402:23
+      at Traces.$ (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/traces.DT5aQ62U.js:142:27)
+      at VitestMocker.requestWithMockedModule (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:367:21)
+      at VitestModuleRunner.cachedRequest (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:568:31)
+      at request (file:///home/project/fitness-studio/node_modules/.pnpm/vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0/node_modules/vite/dist/node/module-runner.js:1217:76)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+}
+
+stderr | src/features/booking/actions.test.ts > submitTrialRequest > succeeds even when Inngest is unavailable (graceful fallback)
+[submitTrialRequest] Inngest send failed: Error: Inngest down
+    at /home/project/fitness-studio/src/features/booking/actions.test.ts:126:43
+    at file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+runner@4.1.9/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+    at file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+runner@4.1.9/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+    at file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+runner@4.1.9/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+    at new Promise (<anonymous>)
+    at runWithCancel (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+runner@4.1.9/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)
+    at file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+runner@4.1.9/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+runner@4.1.9/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)
+    at file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+runner@4.1.9/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64
+
+stderr | src/features/booking/actions.test.ts > submitTrialRequest > generates a unique requestId for each submission
+[submitTrialRequest] DB insert failed (continuing with Inngest): Error: [vitest] There was an error when mocking a module. If you are using "vi.mock" factory, make sure there are no top level variables inside, since this call is hoisted to top of the file. Read more: https://vitest.dev/api/vi.html#vi-mock
+    at createHelpfulError (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:189:16)
+    at ManualMockedModule.resolve (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:163:10)
+    at VitestMocker.callFunctionMock (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:319:32)
+    ... 5 lines matching cause stack trace ...
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at submitTrialRequest (/home/project/fitness-studio/src/features/booking/actions.ts:78:20) {
+  cause: Error: DB unavailable in test
+      at /home/project/fitness-studio/src/features/booking/actions.test.ts:25:9
+      at ManualMockedModule.factory (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/test.DNmyFkvJ.js:3569:78)
+      at ManualMockedModule.resolve (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:161:21)
+      at VitestMocker.callFunctionMock (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:319:32)
+      at file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:402:23
+      at Traces.$ (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/traces.DT5aQ62U.js:142:27)
+      at VitestMocker.requestWithMockedModule (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:367:21)
+      at VitestModuleRunner.cachedRequest (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:568:31)
+      at request (file:///home/project/fitness-studio/node_modules/.pnpm/vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0/node_modules/vite/dist/node/module-runner.js:1217:76)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+}
+
+stderr | src/features/booking/actions.test.ts > submitTrialRequest > generates a unique requestId for each submission
+[submitTrialRequest] DB insert failed (continuing with Inngest): Error: [vitest] There was an error when mocking a module. If you are using "vi.mock" factory, make sure there are no top level variables inside, since this call is hoisted to top of the file. Read more: https://vitest.dev/api/vi.html#vi-mock
+    at createHelpfulError (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:189:16)
+    at ManualMockedModule.resolve (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:163:10)
+    at VitestMocker.callFunctionMock (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:319:32)
+    ... 5 lines matching cause stack trace ...
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at submitTrialRequest (/home/project/fitness-studio/src/features/booking/actions.ts:78:20) {
+  cause: Error: DB unavailable in test
+      at /home/project/fitness-studio/src/features/booking/actions.test.ts:25:9
+      at ManualMockedModule.factory (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/test.DNmyFkvJ.js:3569:78)
+      at ManualMockedModule.resolve (file:///home/project/fitness-studio/node_modules/.pnpm/@vitest+mocker@4.1.9_vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0_/node_modules/@vitest/mocker/dist/chunk-registry.js:161:21)
+      at VitestMocker.callFunctionMock (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:319:32)
+      at file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:402:23
+      at Traces.$ (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/traces.DT5aQ62U.js:142:27)
+      at VitestMocker.requestWithMockedModule (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:367:21)
+      at VitestModuleRunner.cachedRequest (file:///home/project/fitness-studio/node_modules/.pnpm/vitest@4.1.9_@opentelemetry+api@1.9.1_@types+node@22.20.0_jsdom@29.1.1_vite@8.1.3_@type_a3c09520dca84298d334b1a2c6a2edd0/node_modules/vitest/dist/chunks/startVitestModuleRunner.CCBQZ9DQ.js:568:31)
+      at request (file:///home/project/fitness-studio/node_modules/.pnpm/vite@8.1.3_@types+node@22.20.0_esbuild@0.28.1_jiti@2.7.0_tsx@4.22.5_yaml@2.9.0/node_modules/vite/dist/node/module-runner.js:1217:76)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+}
+
+ ✓ src/features/booking/actions.test.ts (10 tests) 52ms
+ ✓ src/tests/unit/programs-queries.test.ts (11 tests) 21ms
+ ✓ src/features/booking/domain/schemas.test.ts (21 tests) 23ms
+ ✓ src/features/assets/domain/schemas.test.ts (19 tests) 24ms
+ ✓ src/features/memberships/data.test.ts (19 tests) 21ms
+ ✓ src/tests/unit/coaches-queries.test.ts (6 tests) 20ms
+ ✓ src/tests/unit/brand-tokens.test.ts (19 tests) 20ms
+ ✓ src/features/coaches/actions.test.ts (18 tests) 30ms
+ ✓ src/features/coaches/domain/schemas.test.ts (13 tests) 20ms
+ ✓ src/tests/unit/stories-queries.test.ts (5 tests) 22ms
+ ✓ src/features/memberships/domain/schemas.test.ts (8 tests) 12ms
+ ✓ src/tests/unit/hydration-guard.test.tsx (1 test) 7ms
+
+ Test Files  16 passed (16)
+      Tests  183 passed (183)
+   Start at  17:08:32
+   Duration  10.58s (transform 927ms, setup 3.89s, import 3.20s, tests 858ms, environment 17.51s)
+
+$ pnpm build
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+> fitness-studio@0.1.0 build /home/project/fitness-studio
+> next build
+
+▲ Next.js 16.2.10 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 9.4s
+✓ Finished TypeScript in 10.2s    
+✓ Collecting page data using 3 workers in 1039ms    
+✓ Generating static pages using 3 workers (40/40) in 813ms
+✓ Finalizing page optimization in 20ms    
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /admin
+├ ƒ /admin/assets/generate
+├ ƒ /admin/coaches
+├ ƒ /admin/coaches/[id]/edit
+├ ƒ /admin/coaches/new
+├ ○ /admin/login
+├ ƒ /api/admin/assets/generate
+├ ƒ /api/auth/[...nextauth]
+├ ƒ /api/checkout
+├ ƒ /api/coaches
+├ ƒ /api/coaches/[slug]
+├ ƒ /api/health
+├ ƒ /api/inngest
+├ ƒ /api/programs
+├ ƒ /api/programs/[slug]
+├ ƒ /api/stories
+├ ƒ /api/stories/[slug]
+├ ƒ /api/stripe/portal
+├ ƒ /api/stripe/webhook
+├ ○ /booking/confirm
+├ ● /coaches/[slug]
+│ ├ /coaches/marcus-steel
+│ ├ /coaches/elena-volk
+│ ├ /coaches/tank-williams
+│ └ [+5 more paths]
+├ ○ /manifest.webmanifest
+├ ● /programs/[slug]
+│ ├ /programs/conjugate-max-effort
+│ ├ /programs/hypertrophy-block
+│ ├ /programs/metcon-inferno
+│ └ [+6 more paths]
+├ ○ /robots.txt
+├ ○ /sitemap.xml
+└ ● /stories/[slug]
+  ├ /stories/david-k
+  ├ /stories/sarah-m
+  ├ /stories/james-r
+  └ [+3 more paths]
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+
+$ pnpm dev
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.overrides". See https://pnpm.io/settings for the new home of each setting.
+
+> fitness-studio@0.1.0 dev /home/project/fitness-studio
+> next dev --turbopack
+
+▲ Next.js 16.2.10 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.2.132:3000
+- Environments: .env.local
+✓ Ready in 462ms
+⚠ Slow filesystem detected. The benchmark took 211ms. If /home/project/fitness-studio/.next/dev is a network drive, consider moving it to a local folder.
+See more: https://nextjs.org/docs/app/guides/local-development
+
+○ Compiling / ...
+ GET / 200 in 8.2s (next.js: 6.8s, application-code: 1407ms)
+ GET / 200 in 481ms (next.js: 6ms, application-code: 475ms)
+ GET / 200 in 27ms (next.js: 6ms, application-code: 21ms)
+
