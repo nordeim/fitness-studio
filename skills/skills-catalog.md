@@ -1,6 +1,6 @@
 # Skills Catalog
 
-> **139 skills** organized into 10 categories. Each entry shows the skill name and a concise description of what it does and when to use it. Skills marked with `*` are external (outside `/home/pete/.pi/agent/skills/`).
+> **141 skills** organized into 10 categories. Each entry shows the skill name and a concise description of what it does and when to use it. Skills marked with `*` are external (outside `/home/pete/.pi/agent/skills/`).
 
 ---
 
@@ -249,7 +249,7 @@
 
 | #   | Category                                       | Count   |
 | --- | ---------------------------------------------- | ------- |
-| 1   | Frontend Development & UI Engineering          | 17      |
+| 1   | Frontend Development & UI Engineering          | 18      |
 | 2   | Design Artifacts & Visual Creation             | 9       |
 | 3   | Full-Stack & Backend Development               | 9       |
 | 4   | AI / ML / Multimodal SDK Skills                | 8       |
@@ -259,7 +259,7 @@
 | 8   | Documentation & Content Creation               | 14      |
 | 9   | Career, Learning & Personal Development        | 14      |
 | 10  | DevOps, Infrastructure & External Integrations | 21      |
-|     | **Total**                                      | **140** |
+|     | **Total**                                      | **141** |
 
 ---
 
