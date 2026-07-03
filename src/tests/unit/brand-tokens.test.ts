@@ -112,13 +112,10 @@ describe('brand tokens', () => {
       expect(ratio).toBeGreaterThanOrEqual(4.5);
     });
 
-    it('muted #6a6a6a on bg #0a0a0a FAILS AAA (regression guard — must use ≥18px only)', () => {
-      const ratio = contrast('#6a6a6a', '#0a0a0a');
-      // Muted is intentionally low-contrast — only allowed for telemetry labels
-      // at ≥18px or non-text. This test locks the value so we don't accidentally
-      // darken it further.
-      expect(ratio).toBeLessThan(7);
-      expect(ratio).toBeGreaterThan(3); // still must clear 3:1 for UI components
+    it('muted #8a8a8a on bg #0a0a0a passes AA-normal (≥4.5:1)', () => {
+      const ratio = contrast('#8a8a8a', '#0a0a0a');
+      // P1 fix: raised from #6a6a6a (3.7:1) to #8a8a8a (5.5:1) — passes AA-normal
+      expect(ratio).toBeGreaterThanOrEqual(4.5);
     });
   });
 

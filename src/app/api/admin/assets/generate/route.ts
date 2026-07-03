@@ -29,11 +29,15 @@ import { isStorageConfigured } from '@/lib/storage/r2';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  // Phase 9: auth check
-  // const session = await auth();
-  // if (!session?.user || session.user.role !== 'admin') {
-  //   return NextResponse.json({ success: false, code: 'UNAUTHORIZED', message: 'Admin access required' }, { status: 401 });
-  // }
+  // Auth check — admin role required (P1 fix from OWASP audit)
+  const { auth } = await import('@/lib/auth');
+  const session = await auth();
+  if (!session?.user || (session.user as { role?: string }).role !== 'admin') {
+    return NextResponse.json(
+      { success: false, code: 'UNAUTHORIZED', message: 'Admin access required' },
+      { status: 401 },
+    );
+  }
 
   // 1. Parse + validate body
   let body: unknown;

@@ -100,7 +100,7 @@ export function SiteHeader() {
               aria-controls="mobile-nav"
               aria-label="Toggle navigation menu"
               onClick={() => setMobileOpen(true)}
-              className="flex h-10 w-10 items-center justify-center text-[var(--color-fg)] hover:bg-white/[0.04] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] md:hidden"
+              className="flex h-11 w-11 items-center justify-center text-[var(--color-fg)] hover:bg-white/[0.04] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] md:hidden"
             >
               <Menu className="h-5 w-5" aria-hidden="true" />
             </button>

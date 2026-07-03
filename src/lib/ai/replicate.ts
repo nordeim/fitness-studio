@@ -105,8 +105,22 @@ export async function generateNoirImage(prompt: string): Promise<{ url: string; 
 /**
  * Download an image from a URL and return it as a Buffer.
  * Used to fetch Replicate output URLs before uploading to R2.
+ *
+ * P2 fix (OWASP A10 — SSRF): Validates that the URL hostname is in the
+ * Replicate delivery allowlist before fetching. Prevents SSRF if the
+ * Replicate response is compromised or if an attacker finds a way to
+ * influence the output URL.
  */
 export async function downloadImage(url: string): Promise<Buffer> {
+  const parsed = new URL(url);
+  const ALLOWED_HOSTS = ['replicate.delivery', 'replicate.com'];
+  const isAllowed = ALLOWED_HOSTS.some(
+    (h) => parsed.hostname === h || parsed.hostname.endsWith(`.${h}`),
+  );
+  if (!isAllowed) {
+    throw new Error(`Unexpected image delivery host: ${parsed.hostname}. Expected one of: ${ALLOWED_HOSTS.join(', ')}`);
+  }
+
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);

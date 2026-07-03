@@ -67,7 +67,7 @@ export function MobileNavSheet({ open, onOpenChange, items }: MobileNavSheetProp
               <button
                 type="button"
                 aria-label="Close navigation menu"
-                className="flex h-10 w-10 items-center justify-center text-[var(--color-fg-dim)] hover:bg-white/[0.04] hover:text-[var(--color-fg)] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+                className="flex h-11 w-11 items-center justify-center text-[var(--color-fg-dim)] hover:bg-white/[0.04] hover:text-[var(--color-fg)] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
               >
                 <X className="h-5 w-5" aria-hidden="true" />
               </button>

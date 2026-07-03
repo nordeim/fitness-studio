@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
+import { randomUUID } from 'node:crypto';
+import { headers } from 'next/headers';
 import { getStripe, isStripeConfigured } from '@/lib/stripe';
 import { CheckoutRequestSchema } from '@/features/memberships/domain/schemas';
 import { MEMBERSHIP_TIERS, DROP_IN_PACK } from '@/features/memberships/data';
+import { rateLimit } from '@/lib/ratelimit';
 
 /**
  * POST /api/checkout
@@ -21,6 +24,18 @@ import { MEMBERSHIP_TIERS, DROP_IN_PACK } from '@/features/memberships/data';
  * Reference: Skills KB §12 (Stripe Checkout pattern).
  */
 export async function POST(request: Request) {
+  // P2 fix (OWASP A04): Rate limit checkout — 10 per minute per IP
+  const headersList = await headers();
+  const forwarded = headersList.get('x-forwarded-for');
+  const ip = forwarded?.split(',')[0]?.trim() ?? 'unknown';
+  const { success: rateLimitOk } = await rateLimit(ip, 'checkout', 10, '1 m');
+  if (!rateLimitOk) {
+    return NextResponse.json(
+      { success: false, code: 'RATE_LIMITED', message: 'Too many requests. Please wait and try again.' },
+      { status: 429 },
+    );
+  }
+
   // 1. Check Stripe is configured
   if (!isStripeConfigured()) {
     return NextResponse.json(
@@ -93,21 +108,23 @@ export async function POST(request: Request) {
     );
   }
 
-  // 5. Create Checkout Session
+  // 5. Create Checkout Session with idempotency key (P2 fix — OWASP A04)
   const stripe = getStripe()!;
+  const idempotencyKey = randomUUID();
   try {
-    const session = await stripe.checkout.sessions.create({
-      mode: isRecurring ? 'subscription' : 'payment',
-      line_items: [{ price: stripePriceId, quantity: 1 }],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/booking/confirm?checkout=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/#memberships`,
-      metadata: {
-        tier,
-        product_name: productName,
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: isRecurring ? 'subscription' : 'payment',
+        line_items: [{ price: stripePriceId, quantity: 1 }],
+        success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/booking/confirm?checkout=success`,
+        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/#memberships`,
+        metadata: {
+          tier,
+          product_name: productName,
+        },
       },
-      // Phase 9: pass customer_email from session.user.email when auth is wired
-      // customer_email: session.user.email,
-    });
+      { idempotencyKey },
+    );
 
     return NextResponse.json({
       success: true,

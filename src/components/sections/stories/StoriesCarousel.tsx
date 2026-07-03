@@ -96,14 +96,14 @@ export function StoriesCarousel({ stories }: StoriesCarouselProps) {
           onClick={prev}
           aria-label="Previous story"
           disabled={currentIndex === 0}
-          className="flex h-10 w-10 items-center justify-center border border-[var(--color-border-light)] text-[var(--color-fg-dim)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:opacity-30 disabled:hover:border-[var(--color-border-light)] disabled:hover:text-[var(--color-fg-dim)]"
+          className="flex h-11 w-11 items-center justify-center border border-[var(--color-border-light)] text-[var(--color-fg-dim)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:opacity-30 disabled:hover:border-[var(--color-border-light)] disabled:hover:text-[var(--color-fg-dim)]"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
 
-        {/* Dots */}
+        {/* Dots — wrapped in 44px tap targets (WCAG 2.5.5) */}
         <div id="storyDots" className="flex items-center gap-2" role="tablist" aria-label="Story pagination">
           {stories.map((_, i) => (
             <button
@@ -114,12 +114,18 @@ export function StoriesCarousel({ stories }: StoriesCarouselProps) {
               aria-label={`Go to story ${i + 1}`}
               onClick={() => goTo(i)}
               className={cn(
-                'h-0.5 transition-all duration-[400ms] ease-[var(--ease-premium)]',
-                i === currentIndex
-                  ? 'w-8 bg-[var(--color-accent)]'
-                  : 'w-2 bg-[var(--color-border-light)] hover:bg-[var(--color-silver-dim)]',
+                'flex min-h-11 min-w-11 items-center justify-center',
               )}
-            />
+            >
+              <span
+                className={cn(
+                  'block h-0.5 transition-all duration-[400ms] ease-[var(--ease-premium)]',
+                  i === currentIndex
+                    ? 'w-8 bg-[var(--color-accent)]'
+                    : 'w-2 bg-[var(--color-border-light)] hover:bg-[var(--color-silver-dim)]',
+                )}
+              />
+            </button>
           ))}
         </div>
 
@@ -129,7 +135,7 @@ export function StoriesCarousel({ stories }: StoriesCarouselProps) {
           onClick={next}
           aria-label="Next story"
           disabled={currentIndex === stories.length - 1}
-          className="flex h-10 w-10 items-center justify-center border border-[var(--color-border-light)] text-[var(--color-fg-dim)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:opacity-30 disabled:hover:border-[var(--color-border-light)] disabled:hover:text-[var(--color-fg-dim)]"
+          className="flex h-11 w-11 items-center justify-center border border-[var(--color-border-light)] text-[var(--color-fg-dim)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:opacity-30 disabled:hover:border-[var(--color-border-light)] disabled:hover:text-[var(--color-fg-dim)]"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <polyline points="9 18 15 12 9 6" />

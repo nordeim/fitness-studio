@@ -57,24 +57,48 @@ export const metadata: Metadata = {
     'hypertrophy',
     'NYC fitness',
     'personal training',
+    'ironforge',
   ],
   authors: [{ name: 'IRONFORGE' }],
+  creator: 'IRONFORGE',
+  publisher: 'IRONFORGE',
   openGraph: {
     title: 'IRONFORGE — Elite Strength & Conditioning Studio',
-    description: 'Built by discipline. Forged in iron.',
+    description: 'Built by discipline. Forged in iron. 24 elite coaches. 9 programs. NYC.',
     type: 'website',
     locale: 'en_US',
     siteName: 'IRONFORGE',
+    url: 'http://localhost:3000',
+    images: [
+      {
+        url: '/icon.svg',
+        width: 512,
+        height: 512,
+        alt: 'IRONFORGE — lightning bolt logo on pure black',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'IRONFORGE — Elite Strength & Conditioning Studio',
-    description: 'Built by discipline. Forged in iron.',
+    description: 'Built by discipline. Forged in iron. 24 elite coaches. 9 programs. NYC.',
+    images: ['/icon.svg'],
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
   },
+  alternates: {
+    canonical: '/',
+  },
+  category: 'health',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

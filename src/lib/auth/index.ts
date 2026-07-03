@@ -2,6 +2,8 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
+import { headers } from 'next/headers';
+import { rateLimitAuth } from '@/lib/ratelimit';
 
 /**
  * IRONFORGE — Auth.js v5 configuration.
@@ -55,6 +57,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = String(credentials.email);
         const password = String(credentials.password);
 
+        // P1 fix (OWASP A04/A07): Rate limit login attempts — 5 per 10 min per IP
+        const headersList = await headers();
+        const forwarded = headersList.get('x-forwarded-for');
+        const ip = forwarded?.split(',')[0]?.trim() ?? 'unknown';
+        const { success: rateLimitOk } = await rateLimitAuth(ip);
+        if (!rateLimitOk) {
+          console.warn('[auth:authorize] Rate limited', { email, ip });
+          return null;
+        }
+
         try {
           const db = await getDb();
           const { users } = await getSchema();
@@ -66,13 +78,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             .limit(1);
 
           if (!user || !user.passwordHash) {
+            // P2 fix (OWASP A09): Log failed login — user not found
+            console.warn('[auth:authorize] Login failed — user not found', { email, ip });
             return null;
           }
 
           const valid = await bcrypt.compare(password, user.passwordHash);
           if (!valid) {
+            // P2 fix: Log failed login — wrong password
+            console.warn('[auth:authorize] Login failed — invalid password', { email, ip, userId: user.id });
             return null;
           }
+
+          // P2 fix: Log successful login
+          console.info('[auth:authorize] Login success', { email, ip, userId: user.id, role: user.role });
 
           return {
             id: user.id,

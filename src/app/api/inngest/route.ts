@@ -16,9 +16,16 @@ import { assetGenerate } from '@/inngest/functions/asset-generate';
  * runs in dev mode (skips signature verification).
  */
 
-// Enable dev mode when no signing key is present
-if (!process.env.INNGEST_SIGNING_KEY) {
+// Enable dev mode only in non-production when no signing key is present (P1 fix — OWASP A08)
+const isBuildContext = process.env.NEXT_PHASE === 'phase-production-build';
+const isProduction = process.env.NODE_ENV === 'production' && !isBuildContext;
+
+if (!isProduction && !process.env.INNGEST_SIGNING_KEY) {
   process.env.INNGEST_DEV = '1';
+}
+// In production runtime (not build), require the signing key
+if (isProduction && !process.env.INNGEST_SIGNING_KEY) {
+  throw new Error('INNGEST_SIGNING_KEY is required in production');
 }
 
 export const maxDuration = 60;

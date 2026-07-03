@@ -33,10 +33,10 @@ const buttonVariants = cva(
           'bg-red-700 text-white hover:bg-red-800 font-semibold',
       },
       size: {
-        default: 'h-10 px-5 py-2.5',
+        default: 'h-11 px-5 py-2.5',
         sm: 'h-9 px-4 text-[0.7rem]',
         lg: 'h-12 px-7 text-sm',
-        icon: 'h-10 w-10',
+        icon: 'h-11 w-11',
       },
     },
     defaultVariants: { variant: 'default', size: 'default' },

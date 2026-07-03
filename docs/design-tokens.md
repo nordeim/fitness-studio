@@ -1,8 +1,10 @@
-# IRONFORGE — Design Tokens Reference
+# IRONFORGE — Design Tokens Reference (v2)
 
 > Single source of truth for the IRONFORGE brand system.
 > Token values live in `src/app/globals.css` `@theme` block.
 > This document is the human-readable companion.
+>
+> **v2 changes (Phase 10):** `--color-muted` raised from `#6a6a6a` (3.66:1) to `#8a8a8a` (5.5:1) — passes WCAG AA-normal. Global `focus-visible` CSS rule added. Touch targets bumped to 44px.
 
 ---
 
@@ -32,7 +34,7 @@
 |---|---|---|---|
 | `--color-fg` | `#f5f5f5` | 18.16:1 ✅ AAA | Body text, headings |
 | `--color-fg-dim` | `#c0c0c0` | 11.4:1 ✅ AAA | Secondary body, captions |
-| `--color-muted` | `#6a6a6a` | 3.85:1 ⚠️ | Telemetry labels (≥18px or non-text only) |
+| `--color-muted` | `#8a8a8a` | 5.5:1 ✅ AA | Telemetry labels, captions, hints (v2: raised from #6a6a6a) |
 
 ### 10% — Accent (neon orange — rationed)
 
@@ -225,3 +227,32 @@ Any change to a token value requires:
 3. Run `pnpm test` — brand-token tests must stay green
 4. Run `pnpm build` — verify no visual regressions
 5. Commit with message `design(tokens): <description>`
+
+---
+
+## Changelog
+
+### v2 (Phase 10 — Security & QA Hardening)
+
+| Change | Rationale | Impact |
+|---|---|---|
+| `--color-muted`: `#6a6a6a` → `#8a8a8a` | WCAG 1.4.3: raised contrast from 3.66:1 (fails AA-normal) to 5.5:1 (passes AA-normal) | All telemetry labels, form labels, captions, hints are now AA-compliant |
+| Global `focus-visible` CSS rule | WCAG 2.4.7: all interactive elements (links, buttons, inputs, selects, textareas, `[tabindex]`) now have visible focus indicators | Keyboard navigation is fully visible site-wide |
+| Touch targets: `h-10 w-10` → `h-11 w-11` | WCAG 2.5.5: all icon buttons bumped from 40px to 44px minimum | Mobile usability improved |
+| Carousel dots: wrapped in 44px tap targets | WCAG 2.5.5: 2px visible bar inside 44px clickable container | Mobile carousel dots are now tappable |
+| Brand-token test: `--color-muted` assertion updated | Test now verifies ≥4.5:1 (AA-normal) instead of verifying it fails | Regression guard for contrast compliance |
+
+### v1 (Phase 1 — Design Tokens & Fonts)
+
+Initial token set:
+- 7 surface colors (bg, bg-darker, bg-card, bg-card-hover, fg, fg-dim, muted)
+- 4 accent colors (accent, accent-bright, accent-dim, accent-glow)
+- 2 chrome colors (silver, silver-dim)
+- 2 border colors (border, border-light)
+- 4 font families (Bebas Neue, Oswald, Archivo, JetBrains Mono)
+- 3 motion easings + 7 durations
+- 11 z-index levels
+- 5 keyframe animations
+- 7 custom utilities
+- Reduced-motion media query
+- 7 forbidden colors enforced by brand-token test
