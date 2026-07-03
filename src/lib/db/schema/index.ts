@@ -196,6 +196,38 @@ export const newsletterSubs = pgTable(
   },
 );
 
+// ── Subscriptions (Stripe membership billing) ──
+export const subscriptionStatusEnum = pgEnum('subscription_status', [
+  'active',
+  'past_due',
+  'canceled',
+  'incomplete',
+  'trialing',
+]);
+
+export const subscriptions = pgTable(
+  'subscriptions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    stripeCustomerId: varchar('stripe_customer_id', { length: 100 }).notNull(),
+    stripeSubscriptionId: varchar('stripe_subscription_id', { length: 100 }).notNull().unique(),
+    stripePriceId: varchar('stripe_price_id', { length: 100 }).notNull(),
+    tier: varchar('tier', { length: 40 }).notNull(), // 'forge' | 'forge_plus' | 'forge_private'
+    status: subscriptionStatusEnum('status').notNull().default('active'),
+    currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }),
+    cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    customerIdx: index('subscriptions_customer_idx').on(t.stripeCustomerId),
+    userIdx: index('subscriptions_user_idx').on(t.userId),
+  }),
+);
+
 // ── Type exports (used across features) ──
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -208,3 +240,5 @@ export type NewStory = typeof stories.$inferInsert;
 export type ClassSlot = typeof classSlots.$inferSelect;
 export type TrialRequest = typeof trialRequests.$inferSelect;
 export type NewsletterSub = typeof newsletterSubs.$inferSelect;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type NewSubscription = typeof subscriptions.$inferInsert;

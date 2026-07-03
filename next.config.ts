@@ -1,4 +1,9 @@
 import type { NextConfig } from 'next';
+import bundleAnalyzer from '@next/bundle-analyzer';
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
 
 /**
  * IRONFORGE — Next.js 16 production configuration.
@@ -39,6 +44,11 @@ const nextConfig: NextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
+      // DEV PLACEHOLDER — picsum.photos for hero reel frames.
+      // Phase 8 (AI asset generation) replaces these with R2-hosted
+      // Replicate SDXL B&W noir athletic photography.
+      { protocol: 'https', hostname: 'picsum.photos' },
+      { protocol: 'https', hostname: 'fastly.picsum.photos' },
       // R2 signed URLs (Phase 8 AI asset generation)
       { protocol: 'https', hostname: '*.r2.cloudflarestorage.com' },
       // Replicate delivery URLs (if used directly — normally proxied via R2)
@@ -72,4 +82,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);
