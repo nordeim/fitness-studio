@@ -9,7 +9,7 @@ description: >
   storage, Upstash rate limiting, Zod 4 validation, and comprehensive OWASP security hardening.
   Use for luxury-brand marketing sites, fitness studio websites, or any Next.js 16 full-stack
   project requiring cinematic dark-mode aesthetics with production-grade infrastructure.
-version: 1.1.1
+version: 1.1.2
 date: 2026-07-03
 tags:
   - nextjs
@@ -703,6 +703,14 @@ The following bugs were found in the post-audit code review and fixed via TDD. E
 **Root cause:** `useHeroReel.ts` called `setProgress` every 100ms via `setInterval` to update the progress bar.
 **Fix:** Added `@keyframes progress-fill` to `globals.css`. Updated `ReelProgress.tsx` to use CSS animation with `key={current}` (restarts on frame change). Removed `setProgress` from `useHeroReel.ts` — only `setCurrentFrame` on frame advance. Zero React re-renders for the progress bar.
 
+### Bug: `toLocaleString()` Without Explicit Locale Caused SSR Hydration Mismatch (Medium — H5)
+
+**Symptom:** Hydration error: `Hydration failed because the server rendered text didn't match the client. -2,400 +2.400`
+**Root cause:** `StatBlock.tsx` called `displayValue.toLocaleString()` without an explicit locale. Server used Node's default (en-US → `2,400`), client used browser locale (e.g., de-DE → `2.400`). The component is a Client Component (`'use client'`), so it renders on both server (SSR) and client (hydration).
+**Why `suppressHydrationWarning` is wrong here:** React docs explicitly state: "React will **not** attempt to patch mismatched text content" when `suppressHydrationWarning={true}`. This leaves the server-rendered text permanently in the DOM. Additionally, `animate={false}` during SSR (because `useReveal` initializes `revealed=false` on the server), so there is no animation to "mask" the visual difference.
+**Fix:** Use `displayValue.toLocaleString('en-US')` — deterministic output eliminates the mismatch at the source. Server and client both produce `2,400`.
+**Regression:** Hydration guard test (`src/tests/unit/hydration-guard.test.tsx`).
+
 ---
 
 ## 10. Debugging Guide
@@ -718,11 +726,12 @@ The following bugs were found in the post-audit code review and fixed via TDD. E
 
 ### Runtime Errors
 
-| Error                             | Cause                                    | Fix                                           |
-| --------------------------------- | ---------------------------------------- | --------------------------------------------- |
-| API returns `NOT_CONFIGURED`      | Infrastructure env vars are placeholders | Set real values in `.env.local`               |
-| Admin redirects in a loop         | `AUTH_URL` doesn't match deployment URL  | Set `AUTH_URL` to match `NEXT_PUBLIC_APP_URL` |
-| `/api/auth/session` returns error | `AUTH_SECRET` is placeholder             | Generate with `openssl rand -base64 32`       |
+| Error                                                                   | Cause                                                                      | Fix                                                                                                                                             |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| API returns `NOT_CONFIGURED`                                            | Infrastructure env vars are placeholders                                   | Set real values in `.env.local`                                                                                                                 |
+| Admin redirects in a loop                                               | `AUTH_URL` doesn't match deployment URL                                    | Set `AUTH_URL` to match `NEXT_PUBLIC_APP_URL`                                                                                                   |
+| `/api/auth/session` returns error                                       | `AUTH_SECRET` is placeholder                                               | Generate with `openssl rand -base64 32`                                                                                                         |
+| Hydration: server rendered text didn't match (e.g., `2,400` vs `2.400`) | `toLocaleString()` uses server locale for SSR, client locale for hydration | Use `toLocaleString('en-US')` for deterministic output. Never use `suppressHydrationWarning` on text nodes — React will not patch the mismatch. |
 
 ### Test Failures
 
@@ -818,6 +827,7 @@ IRONFORGE_LIVE_URL=https://yourdomain.com bash scripts/smoke-test.sh
 
 11. **`react-hooks/set-state-in-effect` is `error`.** Derive state instead, or call `setState` only in event callbacks.
 12. **`react-hooks/exhaustive-deps` is `error`** (not `warn`).
+13. **`toLocaleString()` without explicit locale causes SSR hydration mismatch.** Server uses Node's default locale (en-US), client uses browser locale. For Client Components that render formatted numbers, always use `toLocaleString('en-US')` for deterministic output. `suppressHydrationWarning` is an anti-pattern for text nodes — React docs state it will "not attempt to patch mismatched text content", leaving server-rendered text permanently in the DOM. (H5 fix)
 
 ### Security Lessons
 
@@ -857,26 +867,28 @@ IRONFORGE_LIVE_URL=https://yourdomain.com bash scripts/smoke-test.sh
 
 ## 13. Pitfalls to Avoid
 
-| #   | Pitfall                                                                 | Correct Approach                                                                |
-| --- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| 1   | Using `tailwind.config.js`                                              | All tokens in `globals.css` `@theme` block                                      |
-| 2   | Using `DrizzleAdapter` with JWT                                         | JWT doesn't need it; type mismatch with our schema                              |
-| 3   | Using `{ errorMap }` in Zod 4                                           | Use `{ message }`                                                               |
-| 4   | Importing `lib/storage/r2.ts` in client components                      | Server Component signs URL, passes as prop                                      |
-| 5   | `setState` in `useEffect` body                                          | Derive state or use event callbacks                                             |
-| 6   | Using `middleware.ts`                                                   | Rename to `proxy.ts`, export `proxy`                                            |
-| 7   | Placeholder UUIDs                                                       | Use valid v4 format (`a1000000-0000-4000-8000-...`)                             |
-| 8   | Dynamic class interpolation in Tailwind                                 | Use mapping objects with full class strings                                     |
-| 9   | Importing `env` module in infrastructure clients                        | Use `process.env` directly                                                      |
-| 10  | Forgetting `INNGEST_DEV=1` gate behind `NODE_ENV`                       | Production throws if signing key missing                                        |
-| 11  | Using `as unknown as` casts in queries                                  | Fix the schema (add `.notNull()`) instead — casts hide type mismatches (H4 fix) |
-| 12  | Using `@ts-expect-error` / `@ts-ignore` / `@ts-nocheck`                 | Use proper type narrowing (`instanceof`, type guards) (M7 fix)                  |
-| 13  | Substring matching (`message.includes('email')`) for form error routing | Use the `field` property from the server response (M4 fix)                      |
-| 14  | Including `'unsafe-eval'` in the CSP                                    | Next.js 16 production builds don't need it (H1 fix)                             |
-| 15  | Hardcoding `localhost:3000` in metadata                                 | Use `process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'` (M1 fix)       |
-| 16  | Using `setProgress` in `setInterval` for progress bars                  | Use CSS `@keyframes` + `key={current}` (M8 fix)                                 |
-| 17  | Writing public queries without `.where(eq(*.published, true))`          | Unpublished records would leak via the public API (H2 fix)                      |
-| 18  | Accepting `id: string` in server actions without UUID validation        | Always `z.string().uuid().safeParse(id)` before any DB call (M5 fix)            |
+| #   | Pitfall                                                                 | Correct Approach                                                                          |
+| --- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 1   | Using `tailwind.config.js`                                              | All tokens in `globals.css` `@theme` block                                                |
+| 2   | Using `DrizzleAdapter` with JWT                                         | JWT doesn't need it; type mismatch with our schema                                        |
+| 3   | Using `{ errorMap }` in Zod 4                                           | Use `{ message }`                                                                         |
+| 4   | Importing `lib/storage/r2.ts` in client components                      | Server Component signs URL, passes as prop                                                |
+| 5   | `setState` in `useEffect` body                                          | Derive state or use event callbacks                                                       |
+| 6   | Using `middleware.ts`                                                   | Rename to `proxy.ts`, export `proxy`                                                      |
+| 7   | Placeholder UUIDs                                                       | Use valid v4 format (`a1000000-0000-4000-8000-...`)                                       |
+| 8   | Dynamic class interpolation in Tailwind                                 | Use mapping objects with full class strings                                               |
+| 9   | Importing `env` module in infrastructure clients                        | Use `process.env` directly                                                                |
+| 10  | Forgetting `INNGEST_DEV=1` gate behind `NODE_ENV`                       | Production throws if signing key missing                                                  |
+| 11  | Using `as unknown as` casts in queries                                  | Fix the schema (add `.notNull()`) instead — casts hide type mismatches (H4 fix)           |
+| 12  | Using `@ts-expect-error` / `@ts-ignore` / `@ts-nocheck`                 | Use proper type narrowing (`instanceof`, type guards) (M7 fix)                            |
+| 13  | Substring matching (`message.includes('email')`) for form error routing | Use the `field` property from the server response (M4 fix)                                |
+| 14  | Including `'unsafe-eval'` in the CSP                                    | Next.js 16 production builds don't need it (H1 fix)                                       |
+| 15  | Hardcoding `localhost:3000` in metadata                                 | Use `process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'` (M1 fix)                 |
+| 16  | Using `setProgress` in `setInterval` for progress bars                  | Use CSS `@keyframes` + `key={current}` (M8 fix)                                           |
+| 17  | Writing public queries without `.where(eq(*.published, true))`          | Unpublished records would leak via the public API (H2 fix)                                |
+| 18  | Accepting `id: string` in server actions without UUID validation        | Always `z.string().uuid().safeParse(id)` before any DB call (M5 fix)                      |
+| 19  | `toLocaleString()` without explicit locale in Client Components         | Use `toLocaleString('en-US')` — SSR uses Node locale, client uses browser locale (H5 fix) |
+| 20  | `suppressHydrationWarning` on text nodes as a hydration fix             | React will not patch the mismatch — fix the source instead (H5 fix)                       |
 
 ---
 
@@ -1151,6 +1163,19 @@ export async function deleteCoach(id: string) {
 }
 ```
 
+```typescript
+// ❌ WRONG — toLocaleString() without locale causes hydration mismatch (H5 fix)
+// Server: 2,400 (en-US) vs Client: 2.400 (de-DE)
+<div>{displayValue.toLocaleString()}</div>
+
+// ❌ ALSO WRONG — suppressHydrationWarning on text nodes
+// React will NOT patch the mismatch — server text stays permanently in DOM
+<div suppressHydrationWarning>{displayValue.toLocaleString()}</div>
+
+// ✅ CORRECT — explicit locale for deterministic output
+<div>{displayValue.toLocaleString('en-US')}</div>
+```
+
 ---
 
 ## 17. Responsive Breakpoint Reference
@@ -1398,4 +1423,4 @@ These items were identified in the code audit but require deployment environment
 
 ---
 
-_End of IRONFORGE SKILL.md v1.1.1. Produced by following the Six-Phase Distillation Process from the `to-distill-project-into-skill` meta-skill. Last updated 2026-07-03 (post-audit remediation: 3 Critical + 4 High + 8 Medium findings addressed; 183/183 tests passing; 0 vulnerabilities; v1.1.1 documentation accuracy patch: 11 findings corrected)._
+_End of IRONFORGE SKILL.md v1.1.2. Produced by following the Six-Phase Distillation Process from the `to-distill-project-into-skill` meta-skill. Last updated 2026-07-03 (post-audit remediation: 3 Critical + 4 High + 8 Medium findings addressed; 183/183 tests passing; 0 vulnerabilities; v1.1.1 documentation accuracy patch: 11 findings corrected; v1.1.2 hydration fix documentation: toLocaleString() H5 lesson, anti-pattern, and debugging entry added)._

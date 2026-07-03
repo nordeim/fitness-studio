@@ -615,4 +615,82 @@ Quality gate passed: typecheck ✅ lint ✅ test (183/183) ✅
 
 ---
 
+# Todos
+
+[✓] Phase 1: Verify all claims in CLAUDE.md, AGENTS.md, README.md against codebase
+[✓] Phase 2: Update CLAUDE.md — fix E2E count (8→9), CSP accuracy, add hydration lesson, fix middleware.ts reference
+[✓] Phase 3: Update AGENTS.md — fix E2E count (8→9), Node.js version precision, add hydration lesson
+[✓] Phase 4: Update README.md — fix E2E count (8→9), add hydration lesson, fix file tree, fix test coverage sub-counts
+[✓] Phase 5: Run quality gate to verify no regressions
+Thought: 4ms
+All done. Let me provide a comprehensive summary of all changes made.
+Quality gate passed: typecheck ✅ lint ✅ test (183/183) ✅
+Summary of All Changes
+CLAUDE.md (3 changes)
+Location Change Reason
+Line 126 E2E specs: 8 → 9 Missing hydration-guard.spec.ts from count
+Lines 307-309 Added Lesson #9: toLocaleString() hydration mismatch New finding from StatBlock.tsx fix
+Lines 283-284 Added 2 anti-patterns to Anti-Patterns section toLocaleString() without locale + suppressHydrationWarning on text nodes
+AGENTS.md (3 changes)
+Location Change Reason
+Line 9 Node.js version: ≥20 → ≥20.18.0 per .nvmrc Precision alignment with .nvmrc
+Lines 153-154 Added 2 items to "What NOT to Do" toLocaleString() hydration + suppressHydrationWarning anti-pattern
+Lines 156-159 Added Troubleshooting section New "Hydration failed" entry with cause + fix
+README.md (5 changes)
+Location Change Reason
+Line 274-275 E2E specs: 8 → 9, added hydration-guard Missing spec from count
+Lines 110-111 File tree: added Section, SectionMarker, Container to components/layout/ 3 missing components
+Line 139-140 File tree: removed middleware.ts line File doesn't exist (already deleted)
+Lines 277-288 Test Coverage: rewrote sub-counts to sum correctly to 183 Previous breakdown summed to 153 (30 tests unaccounted)
+Lines 436-437 Added Lesson #9: toLocaleString() hydration mismatch New finding from StatBlock.tsx fix
+Verified Accurate (No Changes Needed)
+
+- All 12 package versions in README Tech Stack table ✅
+- pnpm 10.26.0 consistent across all files ✅
+- .nvmrc pins Node.js 20.18.0 ✅
+- 183 tests across 16 files ✅
+- 5-layer architecture description ✅
+- proxy.ts exists, middleware.ts removed ✅
+- All hook names, feature modules, migration files ✅
+- StatBlock.tsx uses toLocaleString('en-US') ✅
+  Known Discrepancy (Left As-Is Per User Request)
+- CSP 'unsafe-eval': All three docs claim H1 fix removed it, but next.config.ts:30 still includes it. This was explicitly excluded from changes per earlier instruction.
+
+---
+
+# Todos
+
+[✓] Phase 1: Verify SKILL.md claims against codebase
+[✓] Phase 2: Add hydration bug to §9 (Anti-Patterns & Common Bugs)
+[✓] Phase 3: Add hydration error to §10 (Debugging Guide)
+[✓] Phase 4: Add hydration lesson to §12 (Lessons Learnt)
+[✓] Phase 5: Add hydration pitfalls to §13 (Pitfalls to Avoid)
+[✓] Phase 6: Add hydration anti-pattern to §16 (Coding Anti-Patterns)
+[✓] Phase 7: Bump version to 1.1.2 and run quality gate
+Thought: 741ms
+All done. Let me provide a summary.
+Quality gate passed: typecheck ✅ lint ✅ test (183/183) ✅
+Summary: fitness-studio_SKILL.md v1.1.1 → v1.1.2
+Section Change Detail
+§9 Anti-Patterns Added Bug: H5 toLocaleString() without locale causes SSR hydration mismatch. Full root cause, why suppressHydrationWarning is wrong, and fix.
+§10 Debugging Guide Added Runtime Error row Hydration error symptom → cause → fix (use toLocaleString('en-US'), never suppressHydrationWarning on text nodes)
+§12 Lessons Learnt Added Lesson #13 Under "React 19 Lessons": toLocaleString() locale mismatch + suppressHydrationWarning anti-pattern + H5 fix reference
+§13 Pitfalls to Avoid Added rows #19–20 toLocaleString() without locale in Client Components; suppressHydrationWarning on text nodes
+§16 Coding Anti-Patterns Added code block ❌ toLocaleString() / ❌ suppressHydrationWarning / ✅ toLocaleString('en-US') — side-by-side comparison
+Footer Version bump v1.1.1 → v1.1.2 with changelog note
+Verified Already Accurate (No Changes Needed)
+
+- §2 Tech Stack: E2E spec count already says "9 E2E spec files" ✅
+- §5 Component Architecture: StatBlock already shows toLocaleString('en-US') ✅
+- §6 Custom Hooks: useReveal correctly documented ✅
+- All audit remediation bugs (H1–H4, C1–C3, M1–M8) remain accurately documented ✅
+  Complete Documentation Update Summary (All 4 Files)
+  File Version Changes
+  CLAUDE.md — +Lesson #9, +2 anti-patterns, E2E 8→9
+  AGENTS.md — +Node.js precision, +2 anti-patterns, +troubleshooting section
+  README.md — +Lesson #9, E2E 8→9, +file tree fixes, +test coverage sub-counts
+  fitness-studio_SKILL.md 1.1.1 → 1.1.2 +H5 bug, +debugging entry, +lesson #13, +2 pitfalls, +code anti-pattern
+
+---
+
 https://chat.qwen.ai/s/031cdfb9-fa4d-4947-abad-d09eddf6ed4c?fev=0.2.70

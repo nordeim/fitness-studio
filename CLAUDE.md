@@ -34,6 +34,7 @@ Follow this six-phase workflow for all implementation tasks:
 ## Implementation Standards
 
 ### General Coding Practices
+
 - **Early Returns:** Prefer early returns over deeply nested conditionals
 - **Composition over Inheritance:** Favor composition patterns
 - **Self-Documenting Code:** Clear naming and structure
@@ -43,12 +44,14 @@ Follow this six-phase workflow for all implementation tasks:
 ### Language & Framework Guidelines
 
 **TypeScript Strict Mode**
+
 - `strict: true`, `noUncheckedIndexedAccess: true`, `noImplicitOverride: true`, `verbatimModuleSyntax: true`
 - Never use `any` — use `unknown` instead (ESLint `no-explicit-any: error`)
 - Prefer `interface` for structural definitions; `type` for unions
 - Use `import type` for type-only imports (enforced by `consistent-type-imports: error`)
 
 **React 19 + Next.js 16**
+
 - App Router conventions (`src/app/` directory)
 - Server Components by default; `"use client"` only at leaves
 - Use `next/image` for all images (with `priority` on hero, `sizes` on all)
@@ -59,6 +62,7 @@ Follow this six-phase workflow for all implementation tasks:
 - **useSearchParams()** must be wrapped in `<Suspense>` for static prerendering
 
 **Tailwind CSS v4 (CSS-First)**
+
 - NO `tailwind.config.js` — all tokens in `src/app/globals.css` `@theme` block
 - Use `@utility` for custom utilities (not `@layer utilities`)
 - v4 migration: `bg-gradient-to-r` → `bg-linear-to-r`, `shadow-sm` → `shadow-xs`, `outline-none` → `outline-hidden`, `ring` → `ring-3`
@@ -66,18 +70,21 @@ Follow this six-phase workflow for all implementation tasks:
 - NEVER use dynamic class interpolation (`bg-${color}-500`) — Tailwind purges these
 
 **Drizzle ORM**
+
 - Use `eq()`, `orderBy()`, `limit()` parameterized queries — NEVER raw SQL
 - `ON CONFLICT DO NOTHING` for idempotent inserts
 - Migrations via `pnpm drizzle:generate` + `pnpm drizzle:migrate` — NEVER `db push` in production
 - `postgres()` defers connection — safe to eager instantiate
 
 **Auth.js v5**
+
 - JWT strategy (stateless — no DB sessions table needed)
 - `trustHost: true` mandatory (T2 lesson — prevents P0 production outage with reverse proxies)
 - Do NOT use DrizzleAdapter (type mismatch with our schema — JWT doesn't need it)
 - Rate limit login attempts in `authorize()` — 5 per 10 min per IP
 
 **Zod 4**
+
 - Enum syntax: `z.enum([...], { message: '...' })` — NOT `{ errorMap }` (Zod 4 changed this)
 - UUID validation is strict: requires proper v4 format (version digit `4`, variant digit `8/9/a/b`)
 - Use `.safeParse()` for validation (returns `{ success, data } | { success, error }`)
@@ -96,20 +103,20 @@ pnpm db:reset            # Migrate + seed
 
 ### Build Commands
 
-| Command | Purpose |
-|---------|---------|
-| `pnpm dev` | Start dev server (Turbopack) on :3000 |
-| `pnpm build` | Production build |
-| `pnpm start` | Start production server |
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm lint` | ESLint flat config |
-| `pnpm test` | Vitest run (183 unit tests) |
-| `pnpm test:e2e` | Playwright (requires dev server) |
-| `pnpm format` | Prettier write |
-| `pnpm drizzle:generate` | Generate migration from schema diff |
-| `pnpm drizzle:migrate` | Apply migrations |
-| `pnpm db:seed` | Seed (8 coaches + 9 programs + 6 stories + 48 slots) |
-| `pnpm db:reset` | Migrate + seed in one command |
+| Command                 | Purpose                                              |
+| ----------------------- | ---------------------------------------------------- |
+| `pnpm dev`              | Start dev server (Turbopack) on :3000                |
+| `pnpm build`            | Production build                                     |
+| `pnpm start`            | Start production server                              |
+| `pnpm typecheck`        | `tsc --noEmit`                                       |
+| `pnpm lint`             | ESLint flat config                                   |
+| `pnpm test`             | Vitest run (183 unit tests)                          |
+| `pnpm test:e2e`         | Playwright (requires dev server)                     |
+| `pnpm format`           | Prettier write                                       |
+| `pnpm drizzle:generate` | Generate migration from schema diff                  |
+| `pnpm drizzle:migrate`  | Apply migrations                                     |
+| `pnpm db:seed`          | Seed (8 coaches + 9 programs + 6 stories + 48 slots) |
+| `pnpm db:reset`         | Migrate + seed in one command                        |
 
 ### Quality Gate (run before every commit)
 
@@ -122,8 +129,9 @@ This is enforced by Husky `pre-push` hook + GitHub Actions CI.
 ## Testing Strategy
 
 ### Test Pyramid
+
 - **Unit Tests (183):** Vitest + jsdom — brand tokens, hooks, schemas, queries, server actions
-- **E2E Tests (8 specs):** Playwright Chromium — hero, programs, coaches, stories, booking, memberships, auth, SEO
+- **E2E Tests (9 specs):** Playwright Chromium — hero, programs, coaches, stories, booking, memberships, auth, SEO, hydration-guard
 
 ### Test Commands
 
@@ -134,6 +142,7 @@ pnpm test:e2e                # E2E (requires pnpm dev running)
 ```
 
 ### Test Conventions
+
 - **File location:** Unit tests in `src/tests/unit/` OR `src/features/**/*.test.ts` (both matched by vitest config)
 - **JSX tests:** Must use `.test.tsx` extension (not `.test.ts`) — oxc parser limitation
 - **Mock factories:** Use `vi.hoisted()` for mock factories (avoids "Cannot access before initialization")
@@ -151,39 +160,46 @@ pnpm format                  # Prettier (with tailwindcss plugin)
 ```
 
 ### Key ESLint Rules
+
 - `@typescript-eslint/no-explicit-any: error`
 - `@typescript-eslint/consistent-type-imports: error`
 - `react-hooks/exhaustive-deps: error` (NOT warn — strict)
 - `no-restricted-imports` on `src/features/*/domain/**` — prevents domain layer from importing React/Next/DB runtime
 
 ### Prettier Config
+
 - Plugin: `prettier-plugin-tailwindcss` (class sorting)
 - Single quotes, trailing commas, 100 char print width, LF line endings
 
 ## Git & Version Control
 
 ### Branching Strategy
+
 - `feat/<description>` - Feature branches
 - `fix/<description>` - Bug fixes
 - Short-lived branches (merge within 1-3 days)
 
 ### Commit Standards
+
 - Conventional Commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`
 - Atomic commits (one logical change per commit)
 
 ### Pre-commit Hooks (Husky)
+
 - **pre-commit:** `pnpm lint-staged` (ESLint --fix + Prettier on staged `*.{ts,tsx}`, Prettier on `*.{json,md,css,mjs}`)
 - **pre-push:** `pnpm typecheck && pnpm test`
 
 ## Error Handling & Debugging
 
 ### Error Handling Approach
+
 - Server actions return typed `{ success: boolean, code: string, message: string }` — never throw to client
 - API routes return `{ data: T } | { error: { code, message } }` with Zod-validated responses
 - All infrastructure uses dynamic imports + try/catch for graceful fallback
 - `console.error('[context] message:', err)` pattern throughout for structured logging
 
 ### Debugging
+
 - **Vitest:** `pnpm test:watch` — re-runs on file change
 - **Playwright:** `pnpm test:e2e --debug` — step-through mode
 - **Next.js:** Check `.next/dev/server/` for compiled routes
@@ -193,11 +209,13 @@ pnpm format                  # Prettier (with tailwindcss plugin)
 ## Communication & Documentation
 
 ### Documentation Standards
+
 - Every file has a JSDoc header explaining purpose + references to Skills KB
 - `docs/` directory: Master Execution Plan, Skills Knowledge Base, design tokens, security audit
 - `worklog.md`: Phase-by-phase work log (append-only, never overwrite)
 
 ### Key References
+
 - `docs/Master-Execution-Plan.md` — 13-phase execution plan
 - `docs/Skills-Knowledge-Base.md` — distilled learnings from 4 deep-read skills
 - `docs/design-tokens.md` — full token reference
@@ -218,12 +236,14 @@ Layer 4  src/lib/                → Infrastructure: Drizzle, Auth, Inngest, R2,
 **Golden Rule:** A lower layer may never import from a higher layer.
 
 ### API Design
+
 - All API routes return `{ data: T } | { error: { code, message } }`
 - All responses Zod-validated before sending
 - Next.js 16 async params: `{ params }: { params: Promise<{ slug: string }> }` (must `await params`)
 - `force-dynamic` on routes that need env vars at module load (Auth, Inngest)
 
 ### Database / Data Layer
+
 - Drizzle ORM + `postgres` driver (PgBouncer-compatible with `prepare: false`)
 - 11 tables: users, accounts, sessions, verificationTokens, coaches, programs, stories, classSlots, trialRequests, newsletterSubs, subscriptions
 - 3 migrations: `drizzle/0000_majestic_triathlon.sql` + `drizzle/0001_colossal_anthem.sql` + `drizzle/0002_enforce_published_notnull.sql`
@@ -233,6 +253,7 @@ Layer 4  src/lib/                → Infrastructure: Drizzle, Auth, Inngest, R2,
 - **ID validation:** Server actions accepting an `id` param must validate via `z.string().uuid()` before any DB call (M5 fix). See `IdSchema` in `features/coaches/actions.ts`.
 
 ### Environment Variables
+
 - **Runtime:** Validated by `src/lib/env.ts` (Zod schema, throws on missing)
 - **Build context:** Returns placeholders when `NEXT_PHASE=phase-production-build` or `NODE_ENV=test`
 - **Infrastructure clients:** Use `process.env` directly (NOT `env` module) to avoid crash in dev
@@ -241,6 +262,7 @@ Layer 4  src/lib/                → Infrastructure: Drizzle, Auth, Inngest, R2,
 ### Graceful Degradation Pattern
 
 All infrastructure clients follow this pattern:
+
 ```typescript
 function getClient() {
   const key = process.env.KEY;
@@ -251,6 +273,7 @@ function getClient() {
 ```
 
 ### Security Checklist
+
 - Rate limit: booking (5/min), checkout (10/min), auth (5/10min)
 - Honeypot on booking form (`company_website` field)
 - Stripe webhook signature verification
@@ -279,6 +302,8 @@ function getClient() {
 - **`setProgress` in `setInterval` for progress bars:** Causes 10 re-renders/sec (M8 fix). Use CSS `@keyframes` animation + `key={current}` to restart on frame change.
 - **Public queries without `published: true` filter:** Banned (H2 fix). Unpublished records would leak via the public API. Always `.where(eq(*.published, true))`.
 - **Server actions without UUID validation on `id`:** Banned (M5 fix). Always `z.string().uuid().safeParse(id)` before any DB call.
+- **`toLocaleString()` without explicit locale in Client Components:** Banned. SSR uses Node's default locale (en-US), client uses browser locale — causes hydration mismatch. Use `toLocaleString('en-US')` for deterministic output.
+- **`suppressHydrationWarning` on text nodes:** Anti-pattern. React docs explicitly state it will "not attempt to patch mismatched text content" — leaving server-rendered text permanently in the DOM. Fix the source of the mismatch instead.
 
 ## Lessons Learned (Post-Audit Remediation 2026-07-03)
 
@@ -306,6 +331,8 @@ A full code review + audit (see `.audit-report.md`) surfaced 3 Critical, 4 High,
 
 8. **`@ts-expect-error` is a silent type-safety escape hatch.** The `r2.ts` stream handling used `@ts-expect-error` to suppress the `response.Body` type mismatch. Fix: `import { Readable } from 'stream'` + `if (!(response.Body instanceof Readable)) { return null; }` — proper type narrowing with a fail-loud fallback.
 
+9. **`toLocaleString()` without explicit locale causes SSR hydration mismatch.** The `StatBlock` component rendered `2,400` (server, en-US) vs `2.400` (client, browser locale) — a classic locale-dependent hydration error. `suppressHydrationWarning` is an anti-pattern for text nodes (React docs: "React will **not** attempt to patch mismatched text content"). Fix: use `displayValue.toLocaleString('en-US')` — deterministic, eliminates the mismatch at the source. The `animate={false}` flag during SSR means there is no animation to "mask" the visual difference.
+
 ### Testing / TDD
 
 9. **TDD catches missing filters.** The existing query tests only tested the static-fallback path (DB throws). They didn't assert that unpublished records are filtered out — which is why the H2 bug (missing `published: true` filter) went undetected. The new `queries-published-filter.test.ts` mocks the DB to RETURN data (including unpublished rows) and asserts only published rows are returned.
@@ -316,41 +343,47 @@ A full code review + audit (see `.audit-report.md`) surfaced 3 Critical, 4 High,
 
 These items were identified in the audit but cannot be fixed in code — they require changes to the deployment environment or external services:
 
-| # | Item | Action | Impact if Unfixed |
-|---|------|--------|-------------------|
-| 1 | **Deploy with production build** (C1) | Use `docker compose -f docker-compose.prod.yml up -d` OR equivalent. The Dockerfile is correct (`pnpm build` → `pnpm start`); the deployment pipeline must use it. The new `/api/health` route makes the Dockerfile HEALTHCHECK functional. | Site runs in dev mode (5-10× slower, source maps exposed, React DevTools prompt visible, TTFB 350ms vs <100ms) |
-| 2 | **Set `NEXT_PUBLIC_APP_URL`** (C2) | Set `NEXT_PUBLIC_APP_URL=https://ironforge.jesspete.shop` in the deployment environment. | Sitemap + robots publish `localhost` URLs; Google indexes wrong URLs; OG metadata points to localhost |
-| 3 | **Configure Stripe** (H3) | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`. Create 4 Stripe products/prices and update `MEMBERSHIP_TIERS[*].stripePriceId` + `DROP_IN_PACK.stripePriceId` in `src/features/memberships/data.ts`. | Checkout returns 503 NOT_CONFIGURED; memberships section non-functional |
-| 4 | **Apply migration 0002** | Run `pnpm drizzle:migrate` in the deployment environment. | `published` and `order` columns remain nullable in prod DB; queries still work (Drizzle sends the WHERE clause) but type safety is not enforced at the DB level |
-| 5 | **Cloudflare robots.txt** (M6) | Move `Disallow: /admin/` directives into the Cloudflare-managed robots block, OR disable Cloudflare managed robots, OR use a `User-agent: Googlebot` block for the disallows. | Different crawlers handle multiple `User-agent: *` blocks differently; the app's `Disallow: /admin/` MAY be ignored by some crawlers |
+| #   | Item                                  | Action                                                                                                                                                                                                                                       | Impact if Unfixed                                                                                                                                               |
+| --- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Deploy with production build** (C1) | Use `docker compose -f docker-compose.prod.yml up -d` OR equivalent. The Dockerfile is correct (`pnpm build` → `pnpm start`); the deployment pipeline must use it. The new `/api/health` route makes the Dockerfile HEALTHCHECK functional.  | Site runs in dev mode (5-10× slower, source maps exposed, React DevTools prompt visible, TTFB 350ms vs <100ms)                                                  |
+| 2   | **Set `NEXT_PUBLIC_APP_URL`** (C2)    | Set `NEXT_PUBLIC_APP_URL=https://ironforge.jesspete.shop` in the deployment environment.                                                                                                                                                     | Sitemap + robots publish `localhost` URLs; Google indexes wrong URLs; OG metadata points to localhost                                                           |
+| 3   | **Configure Stripe** (H3)             | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`. Create 4 Stripe products/prices and update `MEMBERSHIP_TIERS[*].stripePriceId` + `DROP_IN_PACK.stripePriceId` in `src/features/memberships/data.ts`. | Checkout returns 503 NOT_CONFIGURED; memberships section non-functional                                                                                         |
+| 4   | **Apply migration 0002**              | Run `pnpm drizzle:migrate` in the deployment environment.                                                                                                                                                                                    | `published` and `order` columns remain nullable in prod DB; queries still work (Drizzle sends the WHERE clause) but type safety is not enforced at the DB level |
+| 5   | **Cloudflare robots.txt** (M6)        | Move `Disallow: /admin/` directives into the Cloudflare-managed robots block, OR disable Cloudflare managed robots, OR use a `User-agent: Googlebot` block for the disallows.                                                                | Different crawlers handle multiple `User-agent: *` blocks differently; the app's `Disallow: /admin/` MAY be ignored by some crawlers                            |
 
 ## Troubleshooting
 
 ### "Site is slow / TTFB is high"
+
 - **Check:** Is the deployment running `pnpm dev` or `pnpm start`? Open browser console — if you see `[HMR] connected` or `[Fast Refresh] rebuilding`, it's dev mode.
 - **Fix:** Deploy with the production Dockerfile (`docker compose -f docker-compose.prod.yml up -d`).
 
 ### "Sitemap shows localhost URLs"
+
 - **Cause:** `NEXT_PUBLIC_APP_URL` not set in the deployment environment.
 - **Fix:** Set `NEXT_PUBLIC_APP_URL=https://your-domain.com` and redeploy. Verify with `curl https://your-domain.com/sitemap.xml | head`.
 
 ### "Checkout returns 503 NOT_CONFIGURED"
+
 - **Cause:** Stripe env vars not set.
 - **Fix:** Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`. Create the 4 Stripe products/prices and update `MEMBERSHIP_TIERS` + `DROP_IN_PACK` in `src/features/memberships/data.ts`.
 
 ### "TypeScript error: Type 'string' is not assignable to type 'enum'"
+
 - **Cause:** Drizzle `varchar` column vs Zod `z.enum()` schema mismatch.
 - **Fix:** Either (a) Zod-validate the DB result at runtime (see `programs/queries.ts` for the pattern), or (b) change the Drizzle column to `pgEnum` (requires migration).
 
 ### "Tests fail with 'Cannot access before initialization'"
+
 - **Cause:** Using a plain hoisted variable inside a `vi.mock()` factory.
 - **Fix:** Use `vi.hoisted()` for mock factories: `const { mock } = vi.hoisted(() => ({ mock: vi.fn() }))`.
 
 ### "TypeScript error on `response.Body` in R2 getObject"
+
 - **Cause:** AWS SDK types `response.Body` as `StreamingBlobPayload` which is not directly iterable.
 - **Fix:** Use `instanceof Readable` type narrowing (see `lib/storage/r2.ts`). Never use `@ts-expect-error`.
 
 ### "Hero reel progress bar stutters / causes re-renders"
+
 - **Cause:** `setProgress` called every 100ms via `setInterval`.
 - **Fix:** Use CSS `@keyframes progress-fill` animation with `key={current}` to restart on frame change (see `ReelProgress.tsx` + `globals.css`).
-
