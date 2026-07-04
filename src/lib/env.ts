@@ -16,9 +16,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 
   // ── Database ──
-  DATABASE_URL: z
-    .string()
-    .refine((v) => v.startsWith('postgres'), 'Must be a postgres:// URL'),
+  DATABASE_URL: z.string().refine((v) => v.startsWith('postgres'), 'Must be a postgres:// URL'),
   DATABASE_URL_UNPOOLED: z
     .string()
     .refine((v) => v.startsWith('postgres'), 'Must be a postgres:// URL'),
@@ -36,10 +34,7 @@ const envSchema = z.object({
   REPLICATE_API_TOKEN: z.string().startsWith('r8_'),
   REPLICATE_SDXL_MODEL: z
     .string()
-    .regex(
-      /^[a-z0-9-]+\/[a-z0-9-]+:[a-f0-9]{8,}$/,
-      'Must match owner/model:sha format',
-    )
+    .regex(/^[a-z0-9-]+\/[a-z0-9-]+:[a-f0-9]{8,}$/, 'Must match owner/model:sha format')
     .default('stability-ai/sdxl:39ed52f2a9bfd5d8b6f5b5b5b5b5b5b5b5b5b5b5'),
 
   // ── Cloudflare R2 ──
@@ -56,6 +51,9 @@ const envSchema = z.object({
 
   // ── Email (Resend) ──
   RESEND_API_KEY: z.string().startsWith('re_'),
+  // F-M4: sender + coach-notify addresses (optional — defaults in resend.ts)
+  RESEND_FROM_EMAIL: z.string().email().optional().or(z.literal('')),
+  COACH_NOTIFY_EMAIL: z.string().email().optional().or(z.literal('')),
 
   // ── Upstash ──
   UPSTASH_REDIS_REST_URL: z.string().url(),
@@ -81,10 +79,7 @@ export type Env = z.infer<typeof envSchema>;
  * Returns placeholder values so module load succeeds.
  */
 function isBuildContext(): boolean {
-  return (
-    process.env.NEXT_PHASE === 'phase-production-build' ||
-    process.env.NODE_ENV === 'test'
-  );
+  return process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'test';
 }
 
 function loadEnv(): Env {
@@ -111,6 +106,8 @@ function loadEnv(): Env {
       INNGEST_SIGNING_KEY: 'placeholder',
       INNGEST_API_BASE_URL: '',
       RESEND_API_KEY: 're_placeholder',
+      RESEND_FROM_EMAIL: '',
+      COACH_NOTIFY_EMAIL: '',
       UPSTASH_REDIS_REST_URL: 'https://placeholder.upstash.io',
       UPSTASH_REDIS_REST_TOKEN: 'placeholder',
       ADMIN_EMAIL: 'admin@ironforge.local',
@@ -127,9 +124,7 @@ function loadEnv(): Env {
     parsed.error.issues.forEach((issue) => {
       console.error(`  ${issue.path.join('.')}: ${issue.message}`);
     });
-    throw new Error(
-      'Invalid environment variables. Check `.env.local` against `.env.example`.',
-    );
+    throw new Error('Invalid environment variables. Check `.env.local` against `.env.example`.');
   }
 
   // 3. AUTH_URL / NEXT_PUBLIC_APP_URL host mismatch warning (T2 lesson).

@@ -249,9 +249,6 @@ pnpm test:watch              # Watch mode
 pnpm test:e2e                # Run all E2E specs
 pnpm exec playwright install chromium  # First-time only
 
-# Live site E2E (against production URL)
-pnpm test:e2e:live           # Set IRONFORGE_LIVE_URL env var
-
 # Type checking
 pnpm typecheck               # tsc --noEmit
 

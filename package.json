@@ -18,7 +18,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:live": "playwright test --config=playwright-live.config.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "drizzle:generate": "dotenv -e .env.local -- drizzle-kit generate",
@@ -27,8 +26,6 @@
     "db:seed": "dotenv -e .env.local -- tsx src/lib/db/seed.ts",
     "db:reset": "pnpm drizzle:migrate && pnpm db:seed",
     "analyze": "ANALYZE=true next build",
-    "audit:security": "tsx scripts/security-audit.ts",
-    "audit:a11y": "tsx scripts/accessibility-audit.ts",
     "prepare": "husky || true"
   },
   "lint-staged": {
@@ -63,6 +60,7 @@
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "replicate": "^1.4.0",
+    "resend": "^6.17.1",
     "sonner": "^2.0.7",
     "stripe": "^22.3.0",
     "tailwind-merge": "^3.0.0",

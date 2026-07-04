@@ -31,7 +31,11 @@ export async function POST(request: Request) {
   const { success: rateLimitOk } = await rateLimit(ip, 'checkout', 10, '1 m');
   if (!rateLimitOk) {
     return NextResponse.json(
-      { success: false, code: 'RATE_LIMITED', message: 'Too many requests. Please wait and try again.' },
+      {
+        success: false,
+        code: 'RATE_LIMITED',
+        message: 'Too many requests. Please wait and try again.',
+      },
       { status: 429 },
     );
   }
@@ -121,6 +125,8 @@ export async function POST(request: Request) {
         metadata: {
           tier,
           product_name: productName,
+          // F-M3 fix: priceId is needed by the webhook to record in the subscriptions table
+          priceId: stripePriceId,
         },
       },
       { idempotencyKey },
