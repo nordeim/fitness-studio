@@ -11,6 +11,10 @@ Awesome meticulous review, analysis and planning. Please keep up the good work. 
 
 ---
 
+please meticulously plan to design and run E2E tests using agent-browser CLI tool on the live website at URL `https://ironforge.jesspete.shop/`. goal is to check and confirm that all the remediated fixes have been deployed correctly
+
+---
+
 awesome meticulous job so far. please keep up the good work, now, please meticulously plan to review `fitness-studio_SKILL.md` and update it wirh your new experience and knowledge from this remediation activity. se the included `skills/to-distill-project-into-skill/SKILL.md` to help you with the project knowledge and expertise distillation into a SKILL.md file.
 
 ---
