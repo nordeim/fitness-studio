@@ -7,6 +7,10 @@ First convert your audit report `/home/z/my-project/download/IRONFORGE_audit_rep
 
 ---
 
+Awesome meticulous review, analysis and planning. Please keep up the good work. now, please meticulously review and update @CLAUDE.md , @AGENTS.md , @README.md and @Project_Architecture_Document.md to align with the latest code changes, issues fixed, gotchas to look out for, troubleshooting tips, lessons learnt, outstanding issues and recommendations.
+
+---
+
 please meticulously plan to update @fitness-studio_SKILL.md with medium and minor gaps/issues (leave out the critical finding about `next.config.ts`). first meticulously plan to re-evaluate and re-validate the identified misalignment issues against the codebase to identify the root causes and the optimal fixes (either with the code or the documentation), then meticulously plan to create a remediation plan with a detailed ToDo list to apply the validated optimal fixes for the code or the SKILL.md file. refer to skill 'to-distill-project-into-skill' on the corrent structure and methodology for the project skill distillation.
 
 ---
