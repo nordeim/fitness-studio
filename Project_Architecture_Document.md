@@ -1,11 +1,11 @@
-# IRONFORGE — Master Project Architecture Document (PAD) v1.1.0
+# IRONFORGE — Master Project Architecture Document (PAD) v1.2.0
 
 **Classification:** Internal Engineering Reference
 **Status:** DEFINITIVE, PRODUCTION-LOCKED BLUEPRINT
 Companion Document: AGENTS.md, CLAUDE.md, README.md, fitness-studio_SKILL.md
-**Last Updated:** 2026-07-03 (post-audit remediation)
+**Last Updated:** 2026-07-04 (post-remediation v2)
 **Audience:** Senior Engineers, Tech Leads, DevOps, Onboarding Engineers, AI Coding Agents
-**Quality Gate:** 183/183 unit tests passing (16 files), 8 E2E spec files, 0 vulnerabilities, 24+ routes built
+**Quality Gate:** 207/207 unit tests passing (20 files), 9 E2E spec files, 0 vulnerabilities, 24+ routes built
 
 **Rule:** Every architectural decision in this document traces to a specific rationale. Nothing is here "because it's popular."
 
@@ -92,10 +92,11 @@ IRONFORGE is a production-grade, high-end strength & conditioning studio website
 | **Job Queue**       | Inngest                       | 4.11.0         | Trial request pipeline, AI asset generation                     |
 | **Payments**        | Stripe                        | 22.3.0         | Checkout Sessions, webhooks, customer portal                    |
 | **AI**              | Replicate                     | 1.4.0          | SDXL B&W noir athletic photography                              |
+| **Email**           | Resend                        | 6.17.1         | Trial request notifications + confirmations (graceful fallback) |
 | **Storage**         | Cloudflare R2 (S3-compatible) | latest         | AI-generated assets, signed URLs                                |
-| **Rate Limiting**   | Upstash Redis                 | 2.0.8          | Sliding window on booking/checkout/auth                         |
+| **Rate Limiting**   | Upstash Ratelimit             | 2.0.8          | Sliding window on booking/checkout/auth                         |
 | **Validation**      | Zod                           | 4.4.3          | All inputs + env vars + API responses                           |
-| **Testing**         | Vitest + Playwright           | 4.1.9 / 1.61.0 | 183 unit tests (16 files) + 8 E2E spec files                    |
+| **Testing**         | Vitest + Playwright           | 4.1.9 / 1.61.0 | 207 unit tests (20 files) + 9 E2E spec files                    |
 | **Package Manager** | pnpm                          | ≥10.26.0       | Lockfile + workspace config                                     |
 | **Node.js**         | ≥20.18.0                      | —              | Pinned via `.nvmrc`                                             |
 
@@ -121,6 +122,7 @@ IRONFORGE is a production-grade, high-end strength & conditioning studio website
 - **Consequences (Negative):** `'unsafe-inline'` in `script-src` allows injected inline scripts (XSS risk if dependency compromised).
 - **Alternatives Rejected:** Nonce-based CSP (future hardening — will be implemented in a later sprint). `'unsafe-eval'` (NOT required for Next.js 16 prod — was a misconfiguration).
 - **Lesson:** Grep the actual config string, don't trust the inline comment.
+- **Remediation v2 (2026-07-04):** The H1 fix was claimed as "applied" across 5 docs (CLAUDE.md, AGENTS.md, README.md, SKILL.md, this ADR) but was NEVER actually applied to `next.config.ts:30` — the inline comment on line 24 said "'unsafe-eval' is intentionally absent" while line 30 explicitly included it. Fix: removed `'unsafe-eval'` from the CSP string, added `src/tests/unit/csp-policy.test.ts` regression test (6 tests) to prevent future drift. The docs are now accurate.
 
 ### ADR-003: Auth.js v5 Beta Pin + JWT Strategy
 
@@ -555,9 +557,9 @@ All animations use `transform` + `opacity` only (compositor-friendly), except `p
 | Login rate limited          | 5 per 10 min per IP (Upstash, no-op fallback)                                             |
 | Checkout rate limited       | 10 per 1 min per IP                                                                       |
 | Passwords hashed            | bcrypt cost factor 12                                                                     |
-| Webhook integrity           | Stripe signature verification via `constructEvent(rawBody, sig, secret)`                  |
+| Webhook integrity           | Stripe signature verification via `constructEvent(rawBody, sig, secret)` + DB writes to `subscriptions` table (F-M3 fix: checkout→insert, update→update, delete→cancel)                                  |
 | SSRF prevention             | `downloadImage()` validates hostname against Replicate allowlist                          |
-| CSP                         | `default-src 'self'; script-src 'self' 'unsafe-inline'` (NO `'unsafe-eval'` — H1 fix). `'unsafe-inline'` required for Next.js App Router inline runtime. |
+| CSP                         | `default-src 'self'; script-src 'self' 'unsafe-inline'` (NO `'unsafe-eval'` — H1 fix, now ACTUALLY applied with `csp-policy.test.ts` regression test). `'unsafe-inline'` required for Next.js App Router inline runtime. |
 | HSTS                        | `max-age=63072000; includeSubDomains; preload`                                            |
 | Frame protection            | `X-Frame-Options: DENY` (via `frame-ancestors 'none'`)                                    |
 | Content sniffing            | `X-Content-Type-Options: nosniff`                                                         |
@@ -603,10 +605,10 @@ All animations use `transform` + `opacity` only (compositor-friendly), except `p
 
 | Type        | Location                            | Count                          | Runner                | Coverage                                                          |
 | ----------- | ----------------------------------- | ------------------------------ | --------------------- | ----------------------------------------------------------------- |
-| **Unit**    | `src/tests/unit/**/*.test.{ts,tsx}` | 9 files                        | Vitest + jsdom        | Brand tokens, hero reel, stories carousel, goal selector, queries, published-filter, hydration |
+| **Unit**    | `src/tests/unit/**/*.test.{ts,tsx}` | 13 files                       | Vitest + jsdom        | Brand tokens, hero reel, stories carousel, goal selector, queries, published-filter, hydration, CSP policy, ratelimit, Stripe webhook, Inngest trial-requested |
 | **Feature** | `src/features/**/*.test.{ts,tsx}`   | 7 files                        | Vitest + jsdom        | Schemas (booking, coaches, memberships, assets), actions (booking, coaches) |
-| **E2E**     | `src/tests/e2e/*.spec.ts`           | 8 files                        | Playwright (Chromium) | Hero, programs, coaches, stories, booking, memberships, auth, SEO |
-| **Total**   | —                                   | **16 test files / 183 tests**  | —                     | —                                                                 |
+| **E2E**     | `src/tests/e2e/*.spec.ts`           | 9 files                        | Playwright (Chromium) | Hero, programs, coaches, stories, booking, memberships, auth, SEO, hydration-guard |
+| **Total**   | —                                   | **20 test files / 207 tests**  | —                     | —                                                                 |
 
 ### 10.2 Test Patterns
 
@@ -617,7 +619,9 @@ All animations use `transform` + `opacity` only (compositor-friendly), except `p
 | **DB-available mock**     | `createMockChain(allRows, publishedRows)` — chainable Drizzle builder mock (used in `queries-published-filter.test.ts`) |
 | **SDK constructor mocks** | Use `class` syntax, not arrow functions — arrow functions can't be `new`-ed                      |
 | **Fake timers**           | `vi.useFakeTimers()` + `vi.advanceTimersByTime(ms)` for time-dependent hooks                     |
-| **TDD regression tests**  | Write failing test FIRST (RED), then implement fix (GREEN) — used for H2 + M5 fixes              |
+| **TDD regression tests**  | Write failing test FIRST (RED), then implement fix (GREEN) — used for H2 + M5 + F-D1 + F-M3 + F-M4 + F-M5 fixes |
+| **firstCallArg helper**   | `function firstCallArg<T>(fn): T` — extracts first call arg from `vi.fn()` mock, works around `noUncheckedIndexedAccess` (see `stripe-webhook.test.ts`) |
+| **File-reading tests**    | `readFileSync(resolve(process.cwd(), 'next.config.ts'))` — test reads source file to assert config (see `csp-policy.test.ts`) |
 
 ### 10.3 Pre-PR / Pre-Deploy Checklist
 
@@ -644,7 +648,7 @@ pnpm build            # 24 routes generated
 pnpm start            # Production server on localhost:3000
 ```
 
-### 11.2 Environment Variables (26 total)
+### 11.2 Environment Variables (28 total)
 
 | Variable                             | Required | Description                       | Default                          |
 | ------------------------------------ | -------- | --------------------------------- | -------------------------------- |
@@ -659,6 +663,9 @@ pnpm start            # Production server on localhost:3000
 | `REPLICATE_API_TOKEN`                | No       | Replicate API token               | `r8_placeholder`                 |
 | `INNGEST_EVENT_KEY`                  | No       | Inngest event key                 | `placeholder`                    |
 | `INNGEST_SIGNING_KEY`                | No       | Inngest signing key (prod)        | `placeholder`                    |
+| `RESEND_API_KEY`                     | No       | Resend email API key              | `re_placeholder`                 |
+| `RESEND_FROM_EMAIL`                  | No       | Sender email (verified domain)    | `noreply@ironforge.local`        |
+| `COACH_NOTIFY_EMAIL`                 | No       | Coach team inbox for notifications| `coaches@ironforge.local`        |
 | `UPSTASH_REDIS_REST_URL`             | No       | Upstash Redis URL                 | `https://placeholder.upstash.io` |
 | `UPSTASH_REDIS_REST_TOKEN`           | No       | Upstash Redis token               | `placeholder`                    |
 | ... and 12 more                      | —        | See `.env.example` for full list  | —                                |
@@ -718,7 +725,7 @@ pnpm dev
 | `pnpm build`            | Production build                         |
 | `pnpm typecheck`        | `tsc --noEmit` (must pass — strict mode) |
 | `pnpm lint`             | ESLint flat config (9.x)                 |
-| `pnpm test`             | Vitest run (183 unit tests, 16 files)    |
+| `pnpm test`             | Vitest run (207 unit tests, 20 files)   |
 | `pnpm test:e2e`         | Playwright (requires `pnpm dev` running) |
 | `pnpm db:reset`         | drizzle migrate + seed                   |
 | `pnpm drizzle:generate` | Generate migration from schema diff      |
@@ -743,15 +750,17 @@ pnpm dev
 
 ## 13. Known Issues & Outstanding Tasks
 
-### 13.1 Operational Items (Require Deployment Env Access — Post-Audit Remediation)
+### 13.1 Operational Items (Require Deployment Env Access — Post-Remediation v2)
 
-These items were identified in the code audit (see `.audit-report.md`) but cannot be fixed in code:
+These items were identified in the code audit (see `IRONFORGE_code_review_audit.md`) but cannot be fixed in code:
 
 | Priority | Issue | Impact | Status |
 | -------- | ----- | ------ | ------ |
 | **P0** | Deploy with production build (`docker compose -f docker-compose.prod.yml up -d`) — NOT `pnpm dev` | Site runs in dev mode (5-10× slower, source maps exposed, TTFB 350ms vs <100ms) | Open |
 | **P0** | Set `NEXT_PUBLIC_APP_URL=https://your-domain.com` in deployment env | Sitemap + robots publish `localhost` URLs; Google indexes wrong URLs | Open |
-| **P1** | Configure Stripe env vars + create 4 products/prices + update `MEMBERSHIP_TIERS`/`DROP_IN_PACK` in `data.ts` | Checkout returns 503 NOT_CONFIGURED; memberships non-functional | Open |
+| **P0** | Rotate committed `AUTH_SECRET` (F-S1) — the old secret was committed to git history. Regenerate with `openssl rand -base64 32`. | The old secret is publicly visible in git history. An attacker with repo access could forge JWT sessions. | Open |
+| **P1** | Configure Stripe env vars + create 4 products/prices + update `MEMBERSHIP_TIERS`/`DROP_IN_PACK` in `data.ts` | Checkout returns 503 NOT_CONFIGURED; memberships non-functional. Webhook handlers are implemented (F-M3) but can't fire. | Open |
+| **P1** | Configure Resend (`RESEND_API_KEY` + optionally `RESEND_FROM_EMAIL` + `COACH_NOTIFY_EMAIL`) (F-M4) | Trial request emails are logged to console only; coaches don't receive notifications, members don't receive confirmations. | Open |
 | **P1** | Apply migration 0002 (`pnpm drizzle:migrate`) in deployment env | `published`/`order` columns remain nullable at DB level | Open |
 | **P2** | Move Cloudflare `Disallow: /admin/` into CF-managed robots block | Some crawlers may ignore the app's `Disallow: /admin/` directive | Open |
 
@@ -792,6 +801,17 @@ These items were identified in the code audit (see `.audit-report.md`) but canno
 | L1 | Updated test count 153→183 across 6 docs | Doc update |
 | L5 | Removed dead `/#schedule` nav item | UI fix |
 
+### 13.4 Code-Fixable Items Resolved in Remediation v2 (2026-07-04)
+
+| Finding | Fix Applied | TDD? |
+|---------|-------------|------|
+| F-D1 (Critical) | Removed `'unsafe-eval'` from CSP (was claimed in 5 docs but never actually applied) | ✅ 6 TDD tests (`csp-policy.test.ts`) |
+| F-S1 (High) | Created `.env.example` with placeholders, untracked `.env.local` + `.env.docker` from git, deleted `.env.docker` | Config hygiene |
+| F-S2 (High) | Deleted `playwright-live.config.ts`, removed `test:e2e:live` + `audit:security` + `audit:a11y` from `package.json`, updated README | Deletions |
+| F-M3 (Medium) | Implemented 3 Stripe webhook handlers (checkout→insert, update→update, delete→cancel), removed `as unknown as` cast, corrected header comment (SDK v22 uses snake_case), added `priceId` to checkout metadata | ✅ 10 TDD tests (`stripe-webhook.test.ts`) |
+| F-M4 (Medium) | `pnpm add resend`, created `src/lib/email/resend.ts` (graceful-degradation client), wired `trial-requested.ts` to send real emails with console.log fallback, added `RESEND_FROM_EMAIL` + `COACH_NOTIFY_EMAIL` env vars | ✅ 4 TDD tests (`trial-requested.test.ts`) |
+| F-M5 (Medium) | Refactored `ratelimit.ts` to use `process.env` (removed `@/lib/env` import), fixed `hasRealRedis()` to check both `'placeholder'` AND `'xxx'` patterns | ✅ 4 TDD tests (`ratelimit.test.ts`) |
+
 ---
 
 ## 14. Key Files Reference
@@ -830,8 +850,13 @@ These items were identified in the code audit (see `.audit-report.md`) but canno
 | **Field-Aware Errors**   | Server actions return `field` property (from Zod `issues[0].path[0]`) for client-side error routing (M4 fix) |
 | **CSS Progress Fill**    | `@keyframes progress-fill` + `key={current}` — zero React re-renders for the hero progress bar (M8 fix) |
 | **IdSchema**             | `z.string().uuid()` validation on server-action `id` params (M5 fix)               |
+| **CSP Regression Test**  | `csp-policy.test.ts` — reads `next.config.ts` and asserts CSP must not contain `'unsafe-eval'` (F-D1 fix) |
+| **Snake Case SDK**       | Stripe SDK v22 uses snake_case field names (`cancel_at_period_end`, `items.data[0].current_period_end`) — NOT camelCase as a stale comment once claimed (F-M3 fix) |
+| **Graceful Degradation** | All `src/lib/` infra clients use `process.env` directly with `null` fallback — NEVER import `env` from `@/lib/env` (F-M5 fix) |
+| **Placeholder Check**    | `hasRealRedis()` and similar must reject BOTH `'placeholder'` (build-context) AND `'xxx'` (`.env.local` dev) patterns (F-M5 fix) |
+| **Env Template**         | `.env.example` is the template — `.env.local` is the Next.js runtime filename and must never be committed to git (F-S1 fix) |
 
 ---
 
 _Built by discipline. Forged in iron._
-_Document generated 2026-07-03. Last quality gate: 183/183 tests (16 files), 0 vulnerabilities, 24+ routes. Post-audit remediation applied (3 Critical + 4 High + 8 Medium findings addressed)._
+_Document generated 2026-07-04. Last quality gate: 207/207 tests (20 files), 0 vulnerabilities, 24+ routes. Post-audit remediation applied (3 Critical + 4 High + 8 Medium findings addressed). Remediation v2 applied (1 Critical + 2 High + 5 Medium findings addressed, 24 new TDD tests)._

@@ -47,7 +47,9 @@ const mockEventData = {
 
 const mockEvent = { data: mockEventData };
 
-const { trialRequested } = (await import('@/inngest/functions/trial-requested')) as unknown as {
+const { trialRequested } = (await import(
+  '@/inngest/functions/trial-requested'
+)) as unknown as {
   trialRequested: {
     run: (ctx: {
       event: { data: typeof mockEventData };
@@ -158,8 +160,8 @@ describe('trial-requested Inngest function (F-M4)', () => {
 
     const mockStep = makeMockStep();
     // The step.run wrapper calls fn() which throws — Inngest retries
-    await expect(trialRequested.run({ event: mockEvent, step: mockStep as never })).rejects.toThrow(
-      'Resend API down',
-    );
+    await expect(
+      trialRequested.run({ event: mockEvent, step: mockStep as never }),
+    ).rejects.toThrow('Resend API down');
   });
 });

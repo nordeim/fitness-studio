@@ -3,14 +3,17 @@ name: fitness-studio
 description: >
   Production-grade Next.js 16 + React 19 + Tailwind CSS v4 full-stack marketing + booking +
   memberships + admin website for a high-end fitness studio brand. Covers the 5-layer golden
-  rule architecture, graceful degradation pattern for all infrastructure clients, WCAG AAA
-  accessibility, CSS-only animations, Drizzle ORM with static fallback, Auth.js v5 JWT,
-  Inngest step functions, Stripe Checkout, Replicate SDXL AI asset generation, Cloudflare R2
-  storage, Upstash rate limiting, Zod 4 validation, and comprehensive OWASP security hardening.
-  Use for luxury-brand marketing sites, fitness studio websites, or any Next.js 16 full-stack
-  project requiring cinematic dark-mode aesthetics with production-grade infrastructure.
-version: 1.1.2
-date: 2026-07-03
+  rule architecture, graceful degradation pattern for all infrastructure clients (including
+  the F-M5 fix: reject both 'placeholder' AND 'xxx' patterns), WCAG AAA accessibility, CSS-only
+  animations, Drizzle ORM with static fallback, Auth.js v5 JWT, Inngest step functions with
+  Resend email integration (F-M4 fix), Stripe Checkout with webhook DB writes to subscriptions
+  table (F-M3 fix), Replicate SDXL AI asset generation, Cloudflare R2 storage, Upstash rate
+  limiting, Zod 4 validation, and comprehensive OWASP security hardening including a CSP
+  regression test (F-D1 fix). Use for luxury-brand marketing sites, fitness studio websites,
+  or any Next.js 16 full-stack project requiring cinematic dark-mode aesthetics with
+  production-grade infrastructure.
+version: 1.2.0
+date: 2026-07-04
 tags:
   - nextjs
   - react19
@@ -20,6 +23,7 @@ tags:
   - inngest
   - stripe
   - replicate
+  - resend
   - cloudflare-r2
   - wcag-aaa
   - anti-generic
@@ -33,6 +37,13 @@ tags:
 > agent working on the IRONFORGE fitness studio codebase. Read §1–§3 before making any changes.
 > Consult §9 (Anti-Patterns) and §10 (Debugging Guide) when stuck. Run §11 (Pre-Ship Checklist)
 > before every commit.
+>
+> **v1.2.0 changelog (2026-07-04 — Remediation v2):** 6 code-fixable findings applied via TDD
+> (F-D1 CSP unsafe-eval ACTUALLY applied, F-S1 untracked committed AUTH_SECRET, F-S2 removed
+> broken scripts, F-M3 Stripe webhook DB writes, F-M4 Resend email wiring, F-M5 ratelimit env
+> import fix). 24 new regression tests (183 → 207). 2 new env vars (`RESEND_FROM_EMAIL`,
+> `COACH_NOTIFY_EMAIL`). 1 new dependency (`resend@6.17.1`). 6 new lessons, 6 new pitfalls,
+> 3 new coding patterns, 3 new anti-patterns.
 
 ---
 
@@ -114,16 +125,17 @@ IRONFORGE is a production-grade marketing + booking + memberships + admin websit
 | Job Queue     | Inngest                  | `4.11.0`           | v4 `createFunction` uses `triggers` in config object                                            |
 | Payments      | Stripe                   | `22.3.0`           | Checkout redirect model, webhook signature verification                                         |
 | AI            | Replicate                | `1.4.0`            | SDXL, env-configurable model ID (T4 lesson)                                                     |
+| Email         | Resend                   | `6.17.1`           | Trial request notifications + confirmations; graceful fallback to `console.log` (F-M4 fix)        |
 | Storage       | Cloudflare R2 (S3)       | —                  | `MAX_PUT_OBJECT_BYTES = 500 MB` (T7 lesson)                                                     |
 | Rate Limit    | Upstash Ratelimit        | `2.0.8`            | Sliding window, no-op fallback when not configured                                              |
 | Validation    | Zod                      | `4.4.3`            | Enum `{ message }` not `{ errorMap }`; strict UUID v4                                           |
-| Testing       | Vitest + Playwright      | `4.1.9` / `1.61.0` | 183 unit tests (16 files) + 9 E2E spec files                                                    |
+| Testing       | Vitest + Playwright      | `4.1.9` / `1.61.0` | 207 unit tests (20 files) + 9 E2E spec files                                                     |
 | Pkg Manager   | pnpm                     | `≥10.26.0`         | `packageManager` field pinned in `package.json`                                                 |
 | Node.js       | —                        | `≥20.0.0`          | `≥20.0.0` (engines); `20.18.0` pinned in `.nvmrc`                                               |
 | Toasts        | sonner                   | `2.0.7`            | Server action success/error feedback                                                            |
 | Icons         | lucide-react             | `0.460.0`          | Tree-shaken per-icon                                                                            |
 
-**Environment variables:** 26 total (see `.env.example`). Build-context fallback returns placeholders when `NEXT_PHASE=phase-production-build` or `NODE_ENV=test`. **⚠️ Production-critical:** `NEXT_PUBLIC_APP_URL` MUST be set to the production domain — without it, `sitemap.xml`, `robots.txt`, `metadataBase`, and OG `url` publish `localhost` URLs (M1 fix).
+**Environment variables:** 28 total (see `.env.example`). Build-context fallback returns placeholders when `NEXT_PHASE=phase-production-build` or `NODE_ENV=test`. **⚠️ Production-critical:** `NEXT_PUBLIC_APP_URL` MUST be set to the production domain — without it, `sitemap.xml`, `robots.txt`, `metadataBase`, and OG `url` publish `localhost` URLs (M1 fix). **F-S1 fix:** `.env.local` is the Next.js runtime filename — never commit it to git. Use `.env.example` as the template. **F-M4 fix:** `RESEND_FROM_EMAIL` + `COACH_NOTIFY_EMAIL` are optional with sensible defaults (`noreply@ironforge.local`, `coaches@ironforge.local`).
 
 ---
 
@@ -155,7 +167,7 @@ pnpm typecheck && pnpm lint && pnpm test && pnpm build
 | `pnpm start`                 | Start production server                              |
 | `pnpm typecheck`             | `tsc --noEmit`                                       |
 | `pnpm lint`                  | ESLint flat config                                   |
-| `pnpm test`                  | Vitest (183 unit tests, 16 files)                    |
+| `pnpm test`                  | Vitest (207 unit tests, 20 files)                    |
 | `pnpm test:e2e`              | Playwright (requires dev server)                     |
 | `pnpm format`                | Prettier write                                       |
 | `pnpm drizzle:generate`      | Generate migration from schema diff                  |
@@ -626,7 +638,7 @@ All icon buttons: `h-11 w-11` (44×44). Carousel dots: wrapped in `min-h-11 min-
 ### Bug: Infrastructure Client Crashes in Dev Without `.env.local` (Medium)
 
 **Symptom:** API routes return 500; server console shows "Invalid environment variables"
-**Root cause:** Infrastructure clients (`lib/stripe.ts`, `lib/r2.ts`, `lib/ai/replicate.ts`, `lib/inngest/client.ts`) originally imported `env` from `@/lib/env`, which throws in dev without `.env.local`.
+**Root cause:** Infrastructure clients (`lib/stripe.ts`, `lib/r2.ts`, `lib/ai/replicate.ts`, `lib/inngest/client.ts`) originally imported `env` from `@/lib/env`, which throws in dev without `.env.local`. **F-M5 fix:** `lib/ratelimit.ts` was the last holdout — now uses `process.env` directly like all others. **F-M4 fix:** `lib/email/resend.ts` is the newest infra client, following the same pattern.
 **Fix:** Use `process.env` directly in infrastructure clients (not the Zod `env` module). The `env` module is for app-level code only.
 
 ### Bug: DrizzleAdapter Type Mismatch (Medium)
@@ -711,6 +723,56 @@ The following bugs were found in the post-audit code review and fixed via TDD. E
 **Fix:** Use `displayValue.toLocaleString('en-US')` — deterministic output eliminates the mismatch at the source. Server and client both produce `2,400`.
 **Regression:** Hydration guard test (`src/tests/unit/hydration-guard.test.tsx`).
 
+### Remediation v2 Bugs (2026-07-04)
+
+### Bug: CSP `'unsafe-eval'` Claimed Fixed in 5 Docs But Never Actually Applied (Critical — F-D1)
+
+**Symptom:** Live CSP header on `https://ironforge.jesspete.shop/` contained `'unsafe-eval'` despite CLAUDE.md, AGENTS.md, README.md, SKILL.md, and ADR-002 all claiming the H1 fix was applied. The inline comment in `next.config.ts:24` said "'unsafe-eval' is intentionally absent" while line 30 explicitly included it — a self-contradicting file.
+**Root cause:** The H1 fix was documented across 5 files but never actually applied to `next.config.ts:30`. The `status_3.md` worklog confirms the user "explicitly excluded" this fix in a prior session, but all subsequent documentation presented it as completed — a documentation/implementation drift.
+**Fix:** Removed `'unsafe-eval'` from `next.config.ts:30`. Added `src/tests/unit/csp-policy.test.ts` (6 tests) — reads the file and asserts CSP must NOT contain `'unsafe-eval'`, must contain `'unsafe-inline'` + `frame-ancestors 'none'` + `default-src 'self'` + `object-src 'none'`.
+**Lesson:** Documentation claims must be verified against code. Grep the actual config string, don't trust the comment OR the doc. A regression test prevents future drift.
+**Regression:** `src/tests/unit/csp-policy.test.ts` (6 tests).
+
+### Bug: Real `AUTH_SECRET` Committed to Git in `.env.local` + `.env.docker` (High — F-S1)
+
+**Symptom:** `git ls-files | grep -E "^\.env"` returned `.env.docker` and `.env.local` — both tracked. Both contained `AUTH_SECRET=EWPA1F2Hav59ph/HF5cijXxZ9HdiOZVHRaIjumKnzs0=` (identical real secret). `.env.local` also contained `DATABASE_URL=postgresql://fitnesstudio:fitnesstudio_dev_password@...` (committed dev DB password). `.env.example` (referenced 4× in docs as `cp .env.example .env.local`) did not exist.
+**Root cause:** The project used `.env.local` (Next.js's runtime env filename) as the template file instead of `.env.example` (the conventional template filename). A real `AUTH_SECRET` was generated for local dev and committed. `.gitignore` excludes `.env*` but un-ignores `.env.example` — so `.env.local` was either force-added or committed before the `.gitignore` pattern existed.
+**Fix:** Created `.env.example` with placeholder values (`AUTH_SECRET=replace-with-openssl-rand-base64-32`, `DATABASE_URL=postgresql://user:password@...`). `git rm --cached .env.local .env.docker` to untrack (kept `.env.local` working copy for dev). Deleted `.env.docker` (duplicate). **Outstanding:** the committed `AUTH_SECRET` must be rotated in production — it remains in git history.
+**Lesson:** `.env.local` is the Next.js runtime filename (used by `dotenv -e .env.local` in 4 package.json scripts) — it cannot be renamed. Use `.env.example` as the template. Never commit `.env.local`.
+**Regression:** No unit test (config hygiene). Validation: `git ls-files | grep -E "^\.env"` returns only `.env.example`.
+
+### Bug: `pnpm test:e2e:live` + `pnpm audit:security` + `pnpm audit:a11y` Referenced Non-Existent Files (High — F-S2)
+
+**Symptom:** Running `pnpm test:e2e:live` returned "No tests found". Running `pnpm audit:security` or `pnpm audit:a11y` returned file-not-found errors. README.md:253 documented `pnpm test:e2e:live` as a working command.
+**Root cause:** `playwright-live.config.ts:22` matched `/live-site\.spec\.ts/` — no such file existed in `src/tests/e2e/`. `package.json:30-31` defined `audit:security` (`tsx scripts/security-audit.ts`) and `audit:a11y` (`tsx scripts/accessibility-audit.ts`) — neither file existed in `scripts/` (only `smoke-test.sh` + `init-extensions.sql`).
+**Fix:** Deleted `playwright-live.config.ts` (the regular `playwright.config.ts` + `IRONFORGE_LIVE_URL` env var override is sufficient — demonstrated working in the audit). Removed `test:e2e:live`, `audit:security`, `audit:a11y` scripts from `package.json`. Updated README.md to remove the `pnpm test:e2e:live` documentation line.
+**Lesson:** Don't document commands that don't work. If a script/config is referenced, it must exist. Simplicity First — remove rather than implement speculatively.
+**Regression:** No unit test (deletions). Validation: `ls playwright-live.config.ts` returns "file not found"; `grep "test:e2e:live\|audit:security\|audit:a11y" package.json` returns no matches.
+
+### Bug: Stripe Webhook Only Logged Events — Didn't Write to `subscriptions` Table (Medium — F-M3)
+
+**Symptom:** `src/app/api/stripe/webhook/route.ts:74,93,104` contained `// Phase 9:` comments — the 3 handlers (`checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`) only logged to console, never wrote to the `subscriptions` table. Paying customers had no DB record of their subscription.
+**Root cause:** Phase 9 (auth + subscription wiring) was never completed. The webhook logged events but didn't persist them. Additionally, line 83 used `as unknown as Record<string, unknown>` to access `current_period_end` via snake_case string key — but the file's own header comment (lines 17-22) claimed "Stripe SDK v22+ uses camelCase." **This was FALSE** — verified against `node_modules/stripe/cjs/resources/Subscriptions.d.ts`: the SDK uses snake_case (`Subscription.cancel_at_period_end`), and `current_period_end` lives on `SubscriptionItem` (access via `sub.items.data[0]?.current_period_end`), NOT on `Subscription`. The cast was accessing a field that doesn't exist on the Subscription object.
+**Fix:** Implemented 3 handlers: `checkout.session.completed` → looks up userId by `customer_details.email`, inserts into `subscriptions` with `onConflictDoNothing` on `stripeSubscriptionId`; `customer.subscription.updated` → updates `status`, `currentPeriodEnd` (from `sub.items.data[0]?.current_period_end`), `cancelAtPeriodEnd`; `customer.subscription.deleted` → marks `status: 'canceled'`. Removed the `as unknown as` cast — access SDK fields directly (snake_case). Fixed the file header comment. Updated `checkout/route.ts` to add `priceId` to the checkout session metadata (so the webhook can record it).
+**Lesson:** Stripe SDK v22 uses snake_case, NOT camelCase. The `Subscription` type has `cancel_at_period_end` (boolean) but NOT `current_period_end` — that lives on `SubscriptionItem`. Never use `as unknown as` casts in API routes — access fields directly per the SDK types.
+**Regression:** `src/tests/unit/stripe-webhook.test.ts` (10 tests: 503/400/200 responses, 3 handler implementations, no-cast check, unhandled event type).
+
+### Bug: Inngest `trial-requested` Function Stubbed with `console.log` — No Real Email Sent (Medium — F-M4)
+
+**Symptom:** `src/inngest/functions/trial-requested.ts:31-66` — all 3 steps (`notify-coach`, `confirm-member`, `schedule-followup`) used `console.log` only. `resend` package was NOT in `package.json`. `RESEND_API_KEY` was defined in `src/lib/env.ts:58` but never used anywhere. Trial bookings didn't actually notify coaches or confirm with members.
+**Root cause:** The Resend email integration was planned (env var defined) but never wired. The Inngest function just logged to the server console.
+**Fix:** `pnpm add resend` (v6.17.1 — uses named export `import { Resend } from 'resend'`, NOT default import). Created `src/lib/email/resend.ts` (graceful-degradation client matching the `stripe.ts`/`r2.ts`/`replicate.ts` pattern — uses `process.env` directly, returns `null` when `RESEND_API_KEY` is `re_placeholder` or starts with `re_xxx`). Updated `trial-requested.ts`: `notify-coach` + `confirm-member` steps now call `resend.emails.send()` with `console.log` fallback when Resend is not configured. Added `RESEND_FROM_EMAIL` + `COACH_NOTIFY_EMAIL` env vars (optional with defaults). Updated `src/lib/env.ts` schema + build-context fallback.
+**Lesson:** Wire external services with graceful degradation — never crash when they're not configured. The Resend client follows the same pattern as all other infra clients: `process.env` directly + null fallback + console.log fallback in the caller.
+**Regression:** `src/tests/unit/trial-requested.test.ts` (4 tests: sends coach email, sends member email, console.log fallback, re-throws on failure).
+
+### Bug: `ratelimit.ts` Imported `env` from `@/lib/env` — Contradicted Graceful-Degradation Pattern (Medium — F-M5)
+
+**Symptom:** `src/lib/ratelimit.ts:3` imported `env` from `@/lib/env`. All other infra clients (`stripe.ts`, `r2.ts`, `replicate.ts`, `inngest/client.ts`) used `process.env` directly. The `env` module throws at runtime when `.env.local` is missing — would crash any route importing the ratelimit module.
+**Root cause (second bug):** `hasRealRedis()` only checked for `'placeholder'` (build-context value) but NOT `'xxx'` (`.env.local` dev placeholder). The `stripe.ts` pattern checks for both. This meant dev envs with `UPSTASH_REDIS_REST_URL=https://xxx.upstash.io` would pass the check, try to connect, fail, and log an error on every rate-limited request.
+**Fix:** Removed `import { env } from '@/lib/env'`. Added `getEnv(key, fallback)` helper (same as `inngest/client.ts:21-23`). Replaced 4 references to `env.UPSTASH_*` → `getEnv('UPSTASH_*', fallback)`. Updated `hasRealRedis()` to check for both `'placeholder'` AND `'xxx'` patterns (matching `stripe.ts`).
+**Lesson:** All infrastructure clients must use the same graceful-degradation pattern. `ratelimit.ts` was the ONLY holdout. The placeholder check must reject BOTH `'placeholder'` (build-context) AND `'xxx'` (`.env.local` dev) patterns — see `stripe.ts` for the canonical pattern.
+**Regression:** `src/tests/unit/ratelimit.test.ts` (4 tests: no `@/lib/env` import, checks both placeholder + xxx, no-op when unconfigured, no-op when missing).
+
 ---
 
 ## 10. Debugging Guide
@@ -755,6 +817,19 @@ The following bugs were found in the post-audit code review and fixed via TDD. E
 | `/coaches/[slug]` returns 404                              | Detail page route missing (was only API route)                                                                               | Detail pages now exist at `src/app/{coaches,programs,stories}/[slug]/page.tsx` (added in audit remediation)                                                               |
 | Dockerfile HEALTHCHECK fails                               | `/api/health` route was missing                                                                                              | Now exists at `src/app/api/health/route.ts` (returns 200 OK)                                                                                                              |
 
+### Remediation v2 Debugging Scenarios (2026-07-04)
+
+| Symptom                                                    | Cause                                                                                                                        | Fix                                                                                                                                                                       |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Live CSP header contains `'unsafe-eval'`                   | `next.config.ts:30` retained `'unsafe-eval'` despite 5 docs claiming the H1 fix was applied (F-D1)                          | Removed `'unsafe-eval'` from the CSP string. Added `csp-policy.test.ts` regression test. Verify: `curl -I https://your-domain/ \| grep content-security-policy` should NOT contain `unsafe-eval` |
+| `git log` shows committed `AUTH_SECRET` in `.env.local`    | `.env.local` was used as the template file and committed with a real secret (F-S1)                                          | `git rm --cached .env.local .env.docker`. Created `.env.example` with placeholders. **Rotate the committed secret in production** — it remains in git history             |
+| `pnpm test:e2e:live` returns "No tests found"              | `playwright-live.config.ts` matched non-existent `live-site.spec.ts` (F-S2)                                                 | Deleted `playwright-live.config.ts` + removed the script from `package.json`. Use `IRONFORGE_LIVE_URL=... pnpm test:e2e` with the regular config instead                  |
+| Stripe webhook logs events but `subscriptions` table empty | Webhook handlers were stubbed with `// Phase 9:` comments (F-M3)                                                            | Implemented 3 handlers: checkout→insert, update→update, delete→cancel. Removed `as unknown as` cast — Stripe SDK v22 uses snake_case                                      |
+| TS error: `Property 'currentPeriodEnd' does not exist`     | Code used camelCase field name; Stripe SDK v22 uses snake_case (`current_period_end` on `SubscriptionItem`, not `Subscription`) (F-M3) | Access via `sub.items.data[0]?.current_period_end` and `sub.cancel_at_period_end` directly — no cast needed                                                              |
+| Trial request emails never arrive                          | Inngest `trial-requested` was stubbed with `console.log`; `resend` package not installed (F-M4)                             | `pnpm add resend`. Created `src/lib/email/resend.ts`. Wired the 2 email steps with `console.log` fallback. Set `RESEND_API_KEY` + `RESEND_FROM_EMAIL` + `COACH_NOTIFY_EMAIL` in production |
+| Every rate-limited request logs a Redis error in dev       | `hasRealRedis()` only checked for `'placeholder'`, not `'xxx'` — dev envs with `https://xxx.upstash.io` passed the check, tried to connect, failed (F-M5) | Updated `hasRealRedis()` to reject both `'placeholder'` AND `'xxx'` patterns (matching `stripe.ts`). Also removed `@/lib/env` import — use `process.env` directly        |
+| `ratelimit.ts` crashes in dev without `.env.local`         | Module imported `env` from `@/lib/env` which throws at runtime when env vars are missing (F-M5)                              | Removed the `env` import. Added `getEnv(key, fallback)` helper. Use `process.env` directly — same pattern as all other infra clients                                      |
+
 ---
 
 ## 11. Pre-Ship Checklist
@@ -764,7 +839,7 @@ The following bugs were found in the post-audit code review and fixed via TDD. E
 ```bash
 pnpm typecheck    # tsc --noEmit — 0 errors
 pnpm lint         # eslint . — 0 errors, 0 warnings
-pnpm test         # vitest run — 183/183 pass (16 files)
+pnpm test         # vitest run — 207/207 pass (20 files)
 pnpm build        # next build — 0 errors, 24+ routes
 pnpm audit        # 0 vulnerabilities
 ```
@@ -863,6 +938,20 @@ IRONFORGE_LIVE_URL=https://yourdomain.com bash scripts/smoke-test.sh
 33. **Server action `id` params need UUID validation.** Always `z.string().uuid().safeParse(id)` before any DB call. (M5 fix)
 34. **Sitemap URLs must have corresponding page routes.** The sitemap generated 23 detail-page URLs with no `page.tsx` files — all 404'd. Created 3 new detail page routes (`/coaches/[slug]`, `/programs/[slug]`, `/stories/[slug]`). (C3 fix)
 
+### Remediation v2 Lessons (2026-07-04) — Documentation vs Implementation Drift
+
+35. **Documentation claims must be verified against code.** The H1 CSP `'unsafe-eval'` fix was claimed as "applied" across 5 separate documents (CLAUDE.md, AGENTS.md, README.md, SKILL.md, ADR-002) but was NEVER actually applied to `next.config.ts:30`. The inline comment on line 24 even said "'unsafe-eval' is intentionally absent" while line 30 explicitly included it. Lesson: grep the actual config string, don't trust the comment OR the doc. Fix: removed `'unsafe-eval'`, added `csp-policy.test.ts` regression test (6 tests). (F-D1 fix)
+
+36. **Stripe SDK v22 uses snake_case, NOT camelCase.** The webhook route's header comment (lines 17-22) claimed "Stripe SDK v22+ uses camelCase (currentPeriodEnd, cancelAtPeriodEnd)." This was FALSE — verified against `node_modules/stripe/cjs/resources/Subscriptions.d.ts`. The SDK uses snake_case: `Subscription.cancel_at_period_end` (boolean), and `current_period_end` lives on `SubscriptionItem` (access via `sub.items.data[0]?.current_period_end`), NOT on `Subscription`. The existing `as unknown as Record<string, unknown>` cast was accessing a field that doesn't exist. Fix: removed the cast, accessed fields directly, corrected the header comment. (F-M3 fix)
+
+37. **All infrastructure clients must use the same graceful-degradation pattern.** `ratelimit.ts` was the ONLY infra client importing `env` from `@/lib/env` — all others (`stripe.ts`, `r2.ts`, `replicate.ts`, `inngest/client.ts`, `email/resend.ts`) use `process.env` directly. The `env` module throws at runtime when `.env.local` is missing, which would crash any route importing the ratelimit module. Additionally, `hasRealRedis()` only checked for `'placeholder'` (build-context value) but NOT `'xxx'` (`.env.local` dev placeholder) — meaning dev envs would try to connect to `https://xxx.upstash.io`, fail, and log an error on every rate-limited request. Fix: use `process.env` + check for both placeholder patterns. (F-M5 fix)
+
+38. **`.env.local` is the Next.js runtime filename — never use it as a template.** The project committed `.env.local` (with a real `AUTH_SECRET` + dev DB password) to git because it was used as the template file. The correct template filename is `.env.example`. The `.env.local` filename is required by 4 `package.json` scripts (`drizzle:generate`, `drizzle:migrate`, `drizzle:studio`, `db:seed` via `dotenv -e .env.local`) — it cannot be renamed. Fix: created `.env.example` with placeholder values, `git rm --cached .env.local .env.docker`, deleted the duplicate `.env.docker`. **Outstanding:** the committed `AUTH_SECRET` must be rotated in production (it remains in git history). (F-S1 fix)
+
+39. **Don't document commands that don't work.** `pnpm test:e2e:live` was documented in README.md but `playwright-live.config.ts` matched a non-existent `live-site.spec.ts`. Similarly, `pnpm audit:security` and `pnpm audit:a11y` scripts referenced non-existent files in `scripts/`. Running these commands produced "No tests found" or file-not-found errors. Fix: deleted the broken config + removed the 3 script entries from `package.json` + updated README. Rule: if a command is documented, it must work — otherwise remove it. (F-S2 fix)
+
+40. **Wire external services with graceful degradation — never crash when they're not configured.** The Inngest `trial-requested` function was stubbed with `console.log` for all 3 steps — no real email was sent to coaches or members. Fix: installed `resend` package, created `src/lib/email/resend.ts` (graceful-degradation client matching the `stripe.ts` pattern), wired the 2 email steps to call `resend.emails.send()` with `console.log` fallback when `RESEND_API_KEY` is not configured. Added `RESEND_FROM_EMAIL` + `COACH_NOTIFY_EMAIL` env vars. (F-M4 fix)
+
 ---
 
 ## 13. Pitfalls to Avoid
@@ -889,6 +978,12 @@ IRONFORGE_LIVE_URL=https://yourdomain.com bash scripts/smoke-test.sh
 | 18  | Accepting `id: string` in server actions without UUID validation        | Always `z.string().uuid().safeParse(id)` before any DB call (M5 fix)                      |
 | 19  | `toLocaleString()` without explicit locale in Client Components         | Use `toLocaleString('en-US')` — SSR uses Node locale, client uses browser locale (H5 fix) |
 | 20  | `suppressHydrationWarning` on text nodes as a hydration fix             | React will not patch the mismatch — fix the source instead (H5 fix)                       |
+| 21  | Importing `env` from `@/lib/env` in infrastructure clients (`src/lib/`) | Use `process.env` directly — the `env` module throws at runtime when `.env.local` is missing (F-M5 fix) |
+| 22  | Incomplete placeholder checks (only checking `'placeholder'`)          | Reject BOTH `'placeholder'` (build-context) AND `'xxx'` (`.env.local` dev) patterns — see `stripe.ts` (F-M5 fix) |
+| 23  | Using `as unknown as` casts in API routes                              | Access SDK fields directly per the type definitions — Stripe SDK v22 uses snake_case (F-M3 fix) |
+| 24  | Committing `.env.local` to git                                         | Use `.env.example` as the template — `.env.local` is the Next.js runtime filename and must never be tracked (F-S1 fix) |
+| 25  | Documenting commands that don't work (`pnpm test:e2e:live`, etc.)      | If a script/config is referenced, it must exist — remove or implement, don't leave broken references (F-S2 fix) |
+| 26  | Claiming a fix was applied without verifying against code              | Add a regression test that reads the actual config/source — prevents documentation/implementation drift (F-D1 fix) |
 
 ---
 
@@ -906,6 +1001,9 @@ IRONFORGE_LIVE_URL=https://yourdomain.com bash scripts/smoke-test.sh
 - **`next/font/google` with `variable` strategy.** Zero layout shift.
 - **Brand-token test enforces forbidden colors.** 7 colors rejected by Vitest.
 - **`pnpm-workspace.yaml` with `packages: ['.']`.** Required by pnpm 9+.
+- **All infrastructure clients use `process.env` directly.** NEVER import `env` from `@/lib/env` in `src/lib/` — the `env` module throws at runtime when `.env.local` is missing. See `stripe.ts` for the canonical pattern (F-M5 fix).
+- **Regression tests for documented fixes.** When a fix is documented, add a test that verifies the code actually matches the doc — prevents documentation/implementation drift (F-D1 fix: `csp-policy.test.ts` reads `next.config.ts` and asserts CSP must not contain `'unsafe-eval'`).
+- **`.env.example` is the template — `.env.local` is runtime-only.** Never commit `.env.local` to git. The `.env.local` filename is required by `dotenv -e .env.local` in 4 package.json scripts — it cannot be renamed (F-S1 fix).
 
 ---
 
@@ -914,15 +1012,18 @@ IRONFORGE_LIVE_URL=https://yourdomain.com bash scripts/smoke-test.sh
 ### Graceful Degradation Pattern
 
 ```typescript
-// src/lib/stripe.ts (same pattern for r2.ts, replicate.ts, inngest/client.ts)
+// src/lib/stripe.ts (canonical pattern — same for r2.ts, replicate.ts, inngest/client.ts, email/resend.ts, ratelimit.ts)
+// F-M5 fix: check for BOTH 'placeholder' AND 'xxx' patterns
 function getStripe(): Stripe | null {
   const key = process.env.STRIPE_SECRET_KEY;
-  if (!key || key.includes('placeholder')) return null;
+  if (!key || key === 'sk_test_placeholder' || key.startsWith('sk_test_xxx')) return null;
   if (!stripeClient) stripeClient = new Stripe(key, { typescript: true });
   return stripeClient;
 }
 // Caller: if (!stripe) return 503 NOT_CONFIGURED;
 ```
+
+**F-M5 lesson:** `hasRealRedis()` (and similar checks) must reject BOTH `'placeholder'` (build-context value) AND `'xxx'` (`.env.local` dev placeholder). The `stripe.ts` pattern is the canonical reference — all 6 infra clients now follow it.
 
 ### Server Action Pattern (with UUID validation + field-aware errors)
 
@@ -1054,6 +1155,129 @@ function loadEnv(): Env {
 }
 ```
 
+### CSP Regression Test Pattern (F-D1 fix — file-reading test)
+
+```typescript
+// src/tests/unit/csp-policy.test.ts — prevents documentation/implementation drift
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+function getCspPolicy(): string {
+  const content = readFileSync(resolve(process.cwd(), 'next.config.ts'), 'utf-8');
+  const match = content.match(/const CSP_POLICY = \[([\s\S]*?)\]\.join/);
+  if (!match) throw new Error('CSP_POLICY not found in next.config.ts');
+  return match[1];
+}
+
+it('must NOT contain unsafe-eval', () => {
+  expect(getCspPolicy()).not.toContain("'unsafe-eval'");
+});
+```
+
+**Why file-reading?** `next.config.ts` uses `@next/bundle-analyzer` and `NextConfig` types that are awkward to import in Vitest. Reading the source string is simpler and sufficient — we're testing the policy text, not runtime behavior. This pattern catches the case where a doc claims a fix was applied but the code wasn't actually changed.
+
+### Stripe Webhook DB Writes Pattern (F-M3 fix — snake_case SDK, no cast)
+
+```typescript
+// src/app/api/stripe/webhook/route.ts — F-M3 fix
+// Stripe SDK v22 uses snake_case: sub.cancel_at_period_end (on Subscription),
+// sub.items.data[0]?.current_period_end (on SubscriptionItem, NOT Subscription)
+// NEVER use `as unknown as` casts — access fields directly per the SDK types.
+
+case 'checkout.session.completed': {
+  const session = event.data.object as Stripe.Checkout.Session;
+  const customerEmail = session.customer_details?.email ?? null;  // snake_case
+  const stripeCustomerId = typeof session.customer === 'string'
+    ? session.customer : session.customer?.id ?? '';
+  const stripeSubscriptionId = typeof session.subscription === 'string'
+    ? session.subscription : session.subscription?.id ?? '';
+  if (!customerEmail || !stripeSubscriptionId) {
+    console.warn('[stripe/webhook] Missing email or subId — skipping DB insert');
+    break;
+  }
+  // Look up userId by email (checkout is anonymous — no clientReferenceId)
+  const [user] = await db.select().from(users)
+    .where(eq(users.email, customerEmail)).limit(1);
+  if (!user) { console.warn('No user found — skipping'); break; }
+  // Idempotent insert (Stripe may retry webhooks)
+  await db.insert(subscriptions).values({
+    userId: user.id, stripeCustomerId, stripeSubscriptionId,
+    stripePriceId: session.metadata?.priceId ?? '', tier: session.metadata?.tier ?? 'unknown',
+    status: 'active',
+  }).onConflictDoNothing({ target: subscriptions.stripeSubscriptionId });
+  break;
+}
+
+case 'customer.subscription.updated': {
+  const sub = event.data.object as Stripe.Subscription;
+  const cancelAtEnd = sub.cancel_at_period_end;  // snake_case, on Subscription
+  const periodEnd = sub.items?.data?.[0]?.current_period_end;  // on SubscriptionItem
+  await db.update(subscriptions).set({
+    status: statusMap[sub.status] ?? 'incomplete',
+    currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
+    cancelAtPeriodEnd: cancelAtEnd ?? false,
+    updatedAt: new Date(),
+  }).where(eq(subscriptions.stripeSubscriptionId, sub.id));
+  break;
+}
+```
+
+### Resend Email Client Pattern (F-M4 fix — graceful-degradation client)
+
+```typescript
+// src/lib/email/resend.ts — F-M4 fix (same pattern as stripe.ts, r2.ts, replicate.ts)
+import { Resend } from 'resend';  // named export, NOT default
+
+function getResendApiKey(): string | null {
+  const key = process.env.RESEND_API_KEY;
+  if (!key || key === 're_placeholder' || key.startsWith('re_xxx')) return null;
+  return key;
+}
+
+let resendClient: Resend | null = null;
+
+export function getResend(): Resend | null {
+  const key = getResendApiKey();
+  if (!key) return null;
+  if (!resendClient) resendClient = new Resend(key);
+  return resendClient;
+}
+
+export function isResendConfigured(): boolean {
+  return getResend() !== null;
+}
+
+// Usage in Inngest function (with console.log fallback):
+const resend = getResend();
+if (!resend || !isResendConfigured()) {
+  console.log('[inngest:notify-coach] (Resend not configured — logging only) ...');
+  return { success: true, channel: 'console' };
+}
+try {
+  await resend.emails.send({
+    from: getFromEmail(), to: getCoachNotifyEmail(),
+    subject: `New Trial Request: ${data.name}`, text: '...',
+  });
+  return { success: true, channel: 'email' };
+} catch (err) {
+  console.error('[inngest:notify-coach] Resend send failed:', err);
+  throw err;  // Re-throw so Inngest retries
+}
+```
+
+### firstCallArg Helper Pattern (works around noUncheckedIndexedAccess)
+
+```typescript
+// src/tests/unit/stripe-webhook.test.ts — extracts first call arg from vi.fn() mock
+function firstCallArg<T = unknown>(fn: { mock: { calls: unknown[][] } }): T {
+  const calls = fn.mock.calls;
+  if (calls.length === 0) throw new Error('Expected at least 1 call');
+  return calls[0]![0] as T;
+}
+// Usage: const payload = firstCallArg<{ userId: string }>(mockValues);
+// Without this helper, TypeScript's noUncheckedIndexedAccess flags calls[0] as possibly undefined
+```
+
 ---
 
 ## 16. Coding Anti-Patterns
@@ -1174,6 +1398,56 @@ export async function deleteCoach(id: string) {
 
 // ✅ CORRECT — explicit locale for deterministic output
 <div>{displayValue.toLocaleString('en-US')}</div>
+```
+
+```typescript
+// ❌ WRONG — importing env from @/lib/env in an infrastructure client (F-M5 fix)
+// src/lib/ratelimit.ts (was the ONLY holdout)
+import { env } from '@/lib/env';
+function hasRealRedis() {
+  return !env.UPSTASH_REDIS_REST_URL.includes('placeholder');  // throws if .env.local missing
+}
+
+// ✅ CORRECT — use process.env directly with a getEnv helper
+function getEnv(key: string, fallback = ''): string {
+  return process.env[key] ?? fallback;
+}
+function hasRealRedis(): boolean {
+  const url = getEnv('UPSTASH_REDIS_REST_URL');
+  const token = getEnv('UPSTASH_REDIS_REST_TOKEN');
+  return (
+    url.length > 0 &&
+    !url.includes('placeholder') &&
+    !url.includes('xxx') &&  // F-M5 fix: also reject 'xxx' (the .env.local dev placeholder)
+    url.startsWith('https://') &&
+    token.length > 0 &&
+    !token.includes('placeholder') &&
+    !token.includes('xxx')
+  );
+}
+```
+
+```typescript
+// ❌ WRONG — as unknown as cast in API route to access Stripe SDK fields (F-M3 fix)
+const subData = sub as unknown as Record<string, unknown>;
+const periodEnd = subData['current_period_end'] as number | undefined;
+// This cast was accessing a field that DOESN'T EXIST on Subscription — returns undefined
+
+// ✅ CORRECT — access SDK fields directly (Stripe SDK v22 uses snake_case)
+const cancelAtEnd = sub.cancel_at_period_end;  // on Subscription (boolean)
+const periodEnd = sub.items?.data?.[0]?.current_period_end;  // on SubscriptionItem (number)
+// Verified against node_modules/stripe/cjs/resources/Subscriptions.d.ts
+```
+
+```typescript
+// ❌ WRONG — committing .env.local to git (F-S1 fix)
+// .env.local contained: AUTH_SECRET=EWPA1F2Hav59ph/HF5cijXxZ9HdiOZVHRaIjumKnzs0=
+// (a real secret, committed to version control)
+
+// ✅ CORRECT — .env.example is the template (placeholder values only)
+// .env.example contains: AUTH_SECRET=replace-with-openssl-rand-base64-32
+// .env.local is gitignored (Next.js runtime filename, used by dotenv -e .env.local)
+// Validation: git ls-files | grep -E "^\.env" should return only .env.example
 ```
 
 ---
@@ -1373,10 +1647,11 @@ interface AssetGenerationRequest {
 | OWASP Top 10                     | Phase 10       | 4 P1 + 4 P2 + 5 P3                         | All P1+P2 fixed                                                           | —                                  |
 | WCAG AAA                         | Phase 10       | 3 P1 + 2 P2 + 5 P3                         | All P1 fixed                                                              | 19 brand-token tests               |
 | **Code Review & Security Audit** | **2026-07-03** | **3 Critical + 4 High + 8 Medium + 7 Low** | **11 code-fixable items applied via TDD; 5 operational items documented** | **154→183 tests (+29 regression)** |
+| **Remediation v2 (Audit Follow-up)** | **2026-07-04** | **1 Critical + 2 High + 5 Medium + 9 Low/Info** | **6 code-fixable items applied via TDD (F-D1, F-S1, F-S2, F-M3, F-M4, F-M5); 7 operational items documented** | **183→207 tests (+24 regression)** |
 
-**Post-remediation quality gate:** `pnpm typecheck` ✅ | `pnpm lint` ✅ (0 warnings) | `pnpm test` 183/183 ✅ | `pnpm audit` 0 vulns ✅
+**Post-remediation v2 quality gate:** `pnpm typecheck` ✅ | `pnpm lint` ✅ (0 warnings) | `pnpm test` 207/207 ✅ (20 files) | `pnpm audit` 0 vulns ✅ | `pnpm build` ✅ (24+ routes)
 
-See `.audit-report.md` for the full audit report with per-finding details, root causes, and remediation status.
+See `IRONFORGE_code_review_audit.md` for the full audit report with per-finding details, root causes, and remediation status. See `/home/z/my-project/download/IRONFORGE_audit_v2_agent_actionable.md` for the v2 agent-actionable finding spec.
 
 ### Appendix D: Post-Deploy Live-Site Validation
 
@@ -1409,7 +1684,7 @@ IRONFORGE_LIVE_URL=https://yourdomain.com bash scripts/smoke-test.sh
 - **23 sitemap URLs 404** (C3 — detail page routes missing; now fixed)
 - **Stripe not configured** (H3 — checkout returns 503 NOT_CONFIGURED)
 
-### Appendix E: Outstanding Operational Items (Post-Remediation)
+### Appendix E: Outstanding Operational Items (Post-Remediation v2)
 
 These items were identified in the code audit but require deployment environment access — they cannot be fixed in code:
 
@@ -1417,10 +1692,12 @@ These items were identified in the code audit but require deployment environment
 | --- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | 1   | **Deploy with production build** (C1) | Use `docker compose -f docker-compose.prod.yml up -d` (NOT `pnpm dev`). The Dockerfile is correct; the deployment pipeline must use it. The new `/api/health` route makes the Dockerfile HEALTHCHECK functional. | Site runs in dev mode (5-10× slower, source maps exposed, TTFB 350ms vs <100ms)                                        |
 | 2   | **Set `NEXT_PUBLIC_APP_URL`** (C2)    | Set to `https://your-domain.com` in the deployment environment.                                                                                                                                                  | Sitemap + robots publish `localhost` URLs; Google indexes wrong URLs                                                   |
-| 3   | **Configure Stripe** (H3)             | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` + create 4 products/prices + update `MEMBERSHIP_TIERS`/`DROP_IN_PACK` in `data.ts`.                                       | Checkout returns 503 NOT_CONFIGURED; memberships non-functional                                                        |
-| 4   | **Apply migration 0002**              | Run `pnpm drizzle:migrate` in the deployment environment.                                                                                                                                                        | `published`/`order` columns remain nullable at DB level (queries still work, but type safety not enforced at DB level) |
-| 5   | **Cloudflare robots.txt** (M6)        | Move `Disallow: /admin/` into the Cloudflare-managed block, or disable CF managed robots.                                                                                                                        | Some crawlers may ignore the app's `Disallow: /admin/` directive                                                       |
+| 3   | **Rotate committed `AUTH_SECRET`** (F-S1) | The old `AUTH_SECRET=EWPA1F2Hav59ph/HF5cijXxZ9HdiOZVHRaIjumKnzs0=` was committed to git history. Regenerate with `openssl rand -base64 32` and update in production.                                          | The old secret is publicly visible in git history. An attacker with repo access could forge JWT sessions.              |
+| 4   | **Configure Stripe** (H3)             | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` + create 4 products/prices + update `MEMBERSHIP_TIERS`/`DROP_IN_PACK` in `data.ts`.                                       | Checkout returns 503 NOT_CONFIGURED; memberships non-functional. Webhook handlers are implemented (F-M3) but can't fire. |
+| 5   | **Apply migration 0002**              | Run `pnpm drizzle:migrate` in the deployment environment.                                                                                                                                                        | `published`/`order` columns remain nullable at DB level (queries still work, but type safety not enforced at DB level) |
+| 6   | **Configure Resend** (F-M4)           | Set `RESEND_API_KEY` in deployment env. Optionally set `RESEND_FROM_EMAIL` (verified sender domain) + `COACH_NOTIFY_EMAIL` (coach team inbox).                                                                    | Trial request emails are logged to console only; coaches don't receive notifications, members don't receive confirmations. |
+| 7   | **Cloudflare robots.txt** (M6)        | Move `Disallow: /admin/` into the Cloudflare-managed block, or disable CF managed robots.                                                                                                                        | Some crawlers may ignore the app's `Disallow: /admin/` directive                                                       |
 
 ---
 
-_End of IRONFORGE SKILL.md v1.1.2. Produced by following the Six-Phase Distillation Process from the `to-distill-project-into-skill` meta-skill. Last updated 2026-07-03 (post-audit remediation: 3 Critical + 4 High + 8 Medium findings addressed; 183/183 tests passing; 0 vulnerabilities; v1.1.1 documentation accuracy patch: 11 findings corrected; v1.1.2 hydration fix documentation: toLocaleString() H5 lesson, anti-pattern, and debugging entry added)._
+_End of IRONFORGE SKILL.md v1.2.0. Produced by following the Six-Phase Distillation Process from the `to-distill-project-into-skill` meta-skill. Last updated 2026-07-04 (Remediation v2: 1 Critical + 2 High + 5 Medium findings addressed via TDD; 207/207 tests passing; 0 vulnerabilities; 28 env vars; 6 infra clients all using the graceful-degradation pattern; v1.1.2 hydration fix documentation: toLocaleString() H5 lesson; v1.1.1 documentation accuracy patch: 11 findings corrected; v1.1.0 initial release)._

@@ -11,7 +11,7 @@ pnpm dev                                  # Dev server on :3000 (Turbopack)
 pnpm build                                # Production build
 pnpm typecheck                            # tsc --noEmit (must pass — strict mode)
 pnpm lint                                 # eslint . (flat config, 9.x)
-pnpm test                                 # vitest run (183 unit tests)
+pnpm test                                 # vitest run (207 unit tests)
 pnpm test:e2e                             # playwright (requires `pnpm dev` running)
 pnpm db:reset                             # drizzle migrate + seed (needs .env.local)
 pnpm db:seed                              # seed only (idempotent via ON CONFLICT)
@@ -21,6 +21,8 @@ pnpm drizzle:generate                     # generate migration from schema diff
 **Quality gate (must pass before commit):** `pnpm typecheck && pnpm lint && pnpm test && pnpm build`
 
 **Pre-push hook** runs `pnpm typecheck && pnpm test` automatically.
+
+**Test count:** 207 unit tests across 20 files + 9 E2E spec files. Test count increased from 183 → 207 in remediation v2 (added: 6 CSP, 4 ratelimit, 10 Stripe webhook, 4 Inngest trial-requested).
 
 ## Architecture
 
@@ -82,16 +84,18 @@ Lower layers may never import from higher layers. Domain layer (`src/features/*/
 
 ## Graceful Degradation Pattern
 
-All infrastructure clients (`lib/stripe.ts`, `lib/r2.ts`, `lib/ai/replicate.ts`, `lib/inngest/client.ts`) follow this pattern:
+All infrastructure clients (`lib/stripe.ts`, `lib/r2.ts`, `lib/ai/replicate.ts`, `lib/inngest/client.ts`, `lib/email/resend.ts`, `lib/ratelimit.ts`) follow this pattern:
 
 ```typescript
 function getClient() {
   const key = process.env.KEY;
-  if (!key || key.includes('placeholder')) return null;
+  if (!key || key === 'placeholder' || key.startsWith('prefix_xxx')) return null;
   return new Client(key);
 }
-// Callers check for null and fall back to static data / placeholder SVG / error response
+// Callers check for null and fall back to static data / placeholder SVG / console.log
 ```
+
+**F-M5 fix:** `ratelimit.ts` was the ONLY infra client importing `env` from `@/lib/env` — now uses `process.env` directly like all others. Additionally, `hasRealRedis()` now checks for BOTH `'placeholder'` AND `'xxx'` patterns (matching `stripe.ts`).
 
 **Do NOT import `env` from `@/lib/env`** in infrastructure clients — the env module throws in dev without `.env.local`, which would crash any route that imports the client at the top level. Use `process.env` directly.
 
@@ -110,13 +114,16 @@ The Zod-validated `env` module (`src/lib/env.ts`) is for app-level code that nee
 
 - **Admin API routes:** `/api/admin/*` is protected by the edge proxy (matcher: `/admin/:path*` + `/api/admin/:path*`). The route handler ALSO checks `auth()` + `role === 'admin'` — defense in depth.
 - **Inngest dev mode:** `INNGEST_DEV=1` is only set when `NODE_ENV !== 'production'`. In production, the route throws if `INNGEST_SIGNING_KEY` is missing. The build-context check (`NEXT_PHASE === 'phase-production-build'`) prevents the throw during `next build`.
-- **Stripe webhook:** Reads raw body via `request.text()` — do NOT use `request.json()` (breaks signature verification).
+- **Stripe webhook:** Reads raw body via `request.text()` — do NOT use `request.json()` (breaks signature verification). The webhook now writes to the `subscriptions` table (F-M3 fix) — `checkout.session.completed` inserts, `customer.subscription.updated` updates, `customer.subscription.deleted` marks canceled. userId is resolved by `customer_details.email` lookup.
 - **SSRF:** `downloadImage()` in `lib/ai/replicate.ts` validates hostname against `['replicate.delivery', 'replicate.com']` before fetching.
 - **Rate limits:** Booking (5/min), Checkout (10/min), Auth (5/10min). Upstash Redis with no-op fallback when not configured (fails open).
-- **CSP:** `script-src 'self' 'unsafe-inline'` — NO `'unsafe-eval'` (H1 fix). Next.js 16 production builds do not require `'unsafe-eval'`. `'unsafe-inline'` is required for the App Router inline runtime.
+- **CSP:** `script-src 'self' 'unsafe-inline'` — NO `'unsafe-eval'` (H1 fix — now ACTUALLY applied with regression test `csp-policy.test.ts`). Next.js 16 production builds do not require `'unsafe-eval'`. `'unsafe-inline'` is required for the App Router inline runtime.
 - **UUID validation:** Server actions accepting an `id` param must validate via `z.string().uuid()` BEFORE any DB call (M5 fix). See `IdSchema` in `features/coaches/actions.ts`.
 - **Server action responses:** Return `{ success, code, message, field? }` — `field` is populated from Zod `issues[0].path[0]` so the client can route errors to the correct form field without substring matching (M4 fix).
 - **`NEXT_PUBLIC_APP_URL` in production:** Must be set in the deployment env. Used by `metadataBase`, OG `url`, `sitemap.ts`, `robots.ts`. Without it, these publish `localhost` URLs (M1 fix).
+- **Stripe SDK v22 uses snake_case:** `Subscription.cancel_at_period_end` (boolean), `SubscriptionItem.current_period_end` (access via `sub.items.data[0]`). Do NOT use `as unknown as` casts — access fields directly per the SDK types (F-M3 fix).
+- **Email (Resend):** `lib/email/resend.ts` sends real trial-request notifications + confirmations. Falls back to `console.log` when `RESEND_API_KEY` not configured. Requires `RESEND_FROM_EMAIL` (verified sender domain) + `COACH_NOTIFY_EMAIL` (coach team inbox) for production.
+- **`.env.local` untracked:** Never commit `.env.local` — use `.env.example` as the template (F-S1 fix). The old committed `AUTH_SECRET` must be rotated in production.
 
 ## File Locations (non-obvious)
 
@@ -129,8 +136,13 @@ The Zod-validated `env` module (`src/lib/env.ts`) is for app-level code that nee
 - **Admin routes:** `src/app/admin/(guarded)/` — route group excludes `/admin/login` from the auth layout
 - **Detail pages:** `src/app/{coaches,programs,stories}/[slug]/page.tsx` — Server Components with `generateStaticParams` + `generateMetadata` + `notFound()` (added in audit remediation)
 - **Health check:** `src/app/api/health/route.ts` — lightweight 200 endpoint for Dockerfile HEALTHCHECK
+- **Email client:** `src/lib/email/resend.ts` — Resend client with graceful degradation (F-M4 fix)
 - **Published-filter tests:** `src/tests/unit/queries-published-filter.test.ts` — regression tests for H2 (mocks DB-available path)
 - **Coach action tests:** `src/features/coaches/actions.test.ts` — regression tests for M5 (UUID validation)
+- **CSP policy tests:** `src/tests/unit/csp-policy.test.ts` — regression tests for H1 (no `'unsafe-eval'`)
+- **Ratelimit tests:** `src/tests/unit/ratelimit.test.ts` — regression tests for F-M5 (no `@/lib/env` import, checks both placeholder + xxx)
+- **Stripe webhook tests:** `src/tests/unit/stripe-webhook.test.ts` — tests for F-M3 (3 handlers, no cast, DB writes)
+- **Inngest trial-requested tests:** `src/tests/unit/trial-requested.test.ts` — tests for F-M4 (Resend integration, console.log fallback)
 
 ## Build vs Runtime
 
@@ -152,15 +164,20 @@ If you add a new route that imports a module which throws when env vars are miss
 - Don't use placeholder UUIDs like `00000000-0000-0000-0000-000000000001` — Zod 4 rejects them. Use valid v4 format like `a1000000-0000-4000-8000-000000000001`.
 - Don't use `bg-${color}-500` dynamic class interpolation — Tailwind purges it.
 - Don't use `as unknown as` casts in queries — fix the schema (add `.notNull()`) instead (H4 fix).
+- Don't use `as unknown as` casts in API routes — access SDK fields directly per the type definitions (F-M3 fix). Stripe SDK v22 uses snake_case.
 - Don't use `@ts-expect-error` / `@ts-ignore` / `@ts-nocheck` — use proper type narrowing (M7 fix).
 - Don't use substring matching (`message.includes('email')`) for form error routing — use the `field` property from the server response (M4 fix).
-- Don't include `'unsafe-eval'` in the CSP — Next.js 16 production builds don't need it (H1 fix).
+- Don't include `'unsafe-eval'` in the CSP — Next.js 16 production builds don't need it (H1 fix — now ACTUALLY applied + regression test `csp-policy.test.ts`).
 - Don't hardcode `localhost:3000` in metadata — use `process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'` (M1 fix).
 - Don't use `setProgress` in `setInterval` for progress bars — use CSS `@keyframes` + `key={current}` (M8 fix).
 - Don't write public queries without `.where(eq(*.published, true))` — unpublished records would leak (H2 fix).
 - Don't accept `id: string` in server actions without `z.string().uuid()` validation (M5 fix).
 - Don't use `toLocaleString()` without explicit locale in Client Components — SSR uses Node's default locale, client uses browser locale, causing hydration mismatch (e.g., `2,400` vs `2.400`). Use `toLocaleString('en-US')`.
 - Don't use `suppressHydrationWarning` on text nodes as a hydration fix — React docs state it will "not attempt to patch mismatched text content", leaving server-rendered text permanently in the DOM. Fix the source of the mismatch instead.
+- Don't import `env` from `@/lib/env` in infrastructure clients (`src/lib/`) — use `process.env` directly (F-M5 fix). The `env` module throws at runtime when `.env.local` is missing.
+- Don't use incomplete placeholder checks — reject BOTH `'placeholder'` AND `'xxx'` patterns (F-M5 fix). See `stripe.ts` for the canonical pattern.
+- Don't commit `.env.local` to git — use `.env.example` as the template (F-S1 fix). `.env.local` is the Next.js runtime filename.
+- Don't document commands that don't work — if a script/config is referenced, it must exist (F-S2 fix).
 
 ## Troubleshooting
 
@@ -175,6 +192,8 @@ If you add a new route that imports a module which throws when env vars are miss
 | --- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | **Deploy with prod build** (C1)    | Use `docker compose -f docker-compose.prod.yml up -d`. Don't run `pnpm dev` in production.                                                                                 |
 | 2   | **Set `NEXT_PUBLIC_APP_URL`** (C2) | Set to `https://your-domain.com` in deployment env. Used by sitemap, robots, metadataBase, OG.                                                                             |
-| 3   | **Configure Stripe** (H3)          | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` + create 4 products/prices + update `MEMBERSHIP_TIERS`/`DROP_IN_PACK` in `data.ts`. |
-| 4   | **Apply migration 0002**           | Run `pnpm drizzle:migrate` in deployment env. Adds `NOT NULL` to `published` + `order` columns.                                                                            |
-| 5   | **Cloudflare robots** (M6)         | Move `Disallow: /admin/` into the Cloudflare-managed block, or disable CF managed robots.                                                                                  |
+| 3   | **Rotate committed AUTH_SECRET** (F-S1) | The old `AUTH_SECRET` was committed to git history. Regenerate with `openssl rand -base64 32` and update in production.                                                |
+| 4   | **Configure Stripe** (H3)          | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` + create 4 products/prices + update `MEMBERSHIP_TIERS`/`DROP_IN_PACK` in `data.ts`. |
+| 5   | **Apply migration 0002**           | Run `pnpm drizzle:migrate` in deployment env. Adds `NOT NULL` to `published` + `order` columns.                                                                            |
+| 6   | **Configure Resend** (F-M4)        | Set `RESEND_API_KEY` in deployment env. Optionally set `RESEND_FROM_EMAIL` + `COACH_NOTIFY_EMAIL`.                                                                          |
+| 7   | **Cloudflare robots** (M6)         | Move `Disallow: /admin/` into the Cloudflare-managed block, or disable CF managed robots.                                                                                  |

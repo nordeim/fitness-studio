@@ -6,7 +6,7 @@
 [![Node: ≥20](https://img.shields.io/badge/Node.js-≥20.18.0-green.svg)](https://nodejs.org)
 [![pnpm: ≥10.26](https://img.shields.io/badge/pnpm-≥10.26.0-orange.svg)](https://pnpm.io)
 [![Next.js: 16.2](https://img.shields.io/badge/Next.js-16.2-black.svg)](https://nextjs.org)
-[![Tests: 183](https://img.shields.io/badge/Tests-183_passing-brightgreen.svg)](#testing)
+[![Tests: 207](https://img.shields.io/badge/Tests-207_passing-brightgreen.svg)](#testing)
 [![Vulns: 0](https://img.shields.io/badge/Vulnerabilities-0-brightgreen.svg)](#security)
 
 ---
@@ -27,7 +27,7 @@ The site is built on a 5-layer architecture (proxy → app → features → doma
 | 🏋️ **Programs Grid + Detail Pages**    | 9 programs across 5 goal categories with pill-filter + staggered reveal + per-program detail pages (`/programs/[slug]`)                            |
 | 🔄 **Coach Flip Cards + Profiles**     | 3D Y-axis flip on hover/tap/keyboard — front: portrait + name; back: bio + certs + signature workout + per-coach profile pages (`/coaches/[slug]`) |
 | 📖 **Stories Carousel + Detail Pages** | Drag-to-swipe with rubber-band physics, momentum, snap, auto-advance, dots + prev/next + per-story pages (`/stories/[slug]`)                       |
-| 📅 **Booking Flow**                    | Multi-field form with Zod validation, server action (`field`-aware error routing), Inngest job, rate limit, honeypot, toast                        |
+| 📅 **Booking Flow**                    | Multi-field form with Zod validation, server action (`field`-aware error routing), Inngest job, rate limit, honeypot, toast, Resend email notifications (coach + member) |
 | 💳 **Stripe Memberships**              | 3 tiers (Forge / Forge+ / Forge Private) + drop-in pack with Checkout Sessions + webhook                                                           |
 | 🎨 **AI Asset Generation**             | Replicate SDXL B&W noir prompt template → Cloudflare R2 storage with SVG fallback                                                                  |
 | 🔐 **Auth + Admin**                    | Auth.js v5 Credentials + JWT, admin login, CRUD actions (UUID-validated `id` params), role-gated layout, edge proxy                                |
@@ -53,10 +53,11 @@ The site is built on a 5-layer architecture (proxy → app → features → doma
 | Job Queue       | Inngest                       | 4.11.0         | Trial request pipeline, AI asset generation                                                    |
 | Payments        | Stripe                        | 22.3.0         | Checkout Sessions, webhooks, customer portal                                                   |
 | AI              | Replicate                     | 1.4.0          | SDXL B&W noir athletic photography                                                             |
+| Email           | Resend                        | 6.17.1         | Trial request notifications + confirmations (graceful fallback to console.log)                |
 | Storage         | Cloudflare R2 (S3-compatible) | —              | AI-generated assets, signed URLs                                                               |
-| Rate Limiting   | Upstash Redis                 | 2.0.8          | Sliding window on booking/checkout/auth                                                        |
+| Rate Limiting   | Upstash Ratelimit             | 2.0.8          | Sliding window on booking/checkout/auth                                                        |
 | Validation      | Zod                           | 4.4.3          | All inputs + env vars + API responses                                                          |
-| Testing         | Vitest + Playwright           | 4.1.9 / 1.61.0 | 183 unit tests + E2E specs                                                                     |
+| Testing         | Vitest + Playwright           | 4.1.9 / 1.61.0 | 207 unit tests + E2E specs                                                                     |
 | Package Manager | pnpm                          | ≥10.26.0       | Lockfile + workspace config                                                                    |
 | Node.js         | ≥20.18.0                      | —              | Pinned via `.nvmrc`                                                                            |
 
@@ -225,6 +226,8 @@ The site gracefully degrades when the database is unavailable (dev, build, CI). 
 | `INNGEST_EVENT_KEY`                  | No       | Inngest event key                                            |
 | `INNGEST_SIGNING_KEY`                | No       | Inngest signing key (required in production)                 |
 | `RESEND_API_KEY`                     | No       | Resend email API key (`re_*`)                                |
+| `RESEND_FROM_EMAIL`                  | No       | Sender email address (must be verified domain in Resend)     |
+| `COACH_NOTIFY_EMAIL`                 | No       | Inbox that receives trial request notifications (defaults to coaches@ironforge.local) |
 | `UPSTASH_REDIS_REST_URL`             | No       | Upstash Redis URL — enables rate limiting                    |
 | `UPSTASH_REDIS_REST_TOKEN`           | No       | Upstash Redis token                                          |
 | `ADMIN_EMAIL`                        | No       | Admin user email for seed script                             |
@@ -242,7 +245,7 @@ See `.env.example` for the full template with comments.
 
 ```bash
 # Unit tests (Vitest + jsdom)
-pnpm test                    # Run all 183 tests
+pnpm test                    # Run all 207 tests
 pnpm test:watch              # Watch mode
 
 # E2E tests (Playwright — requires running dev server)
@@ -265,10 +268,10 @@ pnpm typecheck && pnpm lint && pnpm test && pnpm build
 
 | Type      | Location                            | Count                                            | Runner                |
 | --------- | ----------------------------------- | ------------------------------------------------ | --------------------- |
-| Unit      | `src/tests/unit/**/*.test.{ts,tsx}` | 9 files                                          | Vitest + jsdom        |
+| Unit      | `src/tests/unit/**/*.test.{ts,tsx}` | 13 files                                         | Vitest + jsdom        |
 | Feature   | `src/features/**/*.test.{ts,tsx}`   | 7 files                                          | Vitest + jsdom        |
 | E2E       | `src/tests/e2e/*.spec.ts`           | 9 specs                                          | Playwright (Chromium) |
-| **Total** | —                                   | **183 unit tests (16 files) + 9 E2E spec files** | —                     |
+| **Total** | —                                   | **207 unit tests (20 files) + 9 E2E spec files** | —                     |
 
 ### Test Coverage
 
@@ -283,6 +286,10 @@ pnpm typecheck && pnpm lint && pnpm test && pnpm build
 - **Asset schemas** (19 tests): Zod validation, SVG placeholder generation, prompt building
 - **Coach schemas + actions** (31 tests): slug regex, bio length, yearsExp bounds (13) + CRUD actions with UUID validation (18)
 - **Hydration guard** (1 test): SSR/client text mismatch detection
+- **CSP policy** (6 tests): regression guard — CSP must not contain `'unsafe-eval'`, must contain `'unsafe-inline'` + `frame-ancestors 'none'` (F-D1 fix)
+- **Rate limiter** (4 tests): no `@/lib/env` import, checks both placeholder + xxx patterns, no-op when unconfigured (F-M5 fix)
+- **Stripe webhook** (10 tests): 3 handlers (checkout→insert, update→update, delete→cancel), no `as unknown as` cast, 503/400/200 responses (F-M3 fix)
+- **Inngest trial-requested** (4 tests): sends coach + member emails via Resend, console.log fallback, re-throws on failure (F-M4 fix)
 
 ---
 
@@ -365,14 +372,14 @@ See [`docs/design-tokens.md`](docs/design-tokens.md) for the full token referenc
 
 | Control            | Implementation                                                                                                                               |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| CSP                | `default-src 'self'`, `script-src 'self' 'unsafe-inline'` (NO `'unsafe-eval'`), `style-src 'self' 'unsafe-inline'`, `frame-ancestors 'none'` |
+| CSP                | `default-src 'self'`, `script-src 'self' 'unsafe-inline'` (NO `'unsafe-eval'` — H1 fix, now ACTUALLY applied with `csp-policy.test.ts` regression test), `style-src 'self' 'unsafe-inline'`, `frame-ancestors 'none'` |
 | HSTS               | `max-age=63072000; includeSubDomains; preload` (2 years)                                                                                     |
 | Auth               | Auth.js v5 Credentials + JWT (30-day expiry) + `trustHost: true`                                                                             |
 | Rate Limiting      | Booking 5/min, Checkout 10/min, Auth 5/10min (Upstash sliding window)                                                                        |
 | Input Validation   | Zod on every public input (booking, checkout, admin, API responses) + UUID validation on all server-action `id` params                       |
 | Password Hashing   | bcrypt cost factor 12                                                                                                                        |
 | Honeypot           | `company_website` hidden field on booking form                                                                                               |
-| Stripe Webhook     | Signature verification via `constructEvent(rawBody, sig, secret)`                                                                            |
+| Stripe Webhook     | Signature verification via `constructEvent(rawBody, sig, secret)` + DB writes to `subscriptions` table (F-M3: checkout→insert, update→update, delete→cancel) |
 | SSRF Protection    | `downloadImage()` validates hostname against Replicate allowlist                                                                             |
 | Admin Auth         | Edge proxy checks cookie → layout checks session → actions check role (defense in depth)                                                     |
 | Published Filter   | All public queries filter by `published: true` — unpublished records never reach the API                                                     |
@@ -401,36 +408,45 @@ See [`docs/security-audit.md`](docs/security-audit.md) for the full OWASP Top 10
 | 12 — Docs & ADRs                  | ✅ Complete | README, CLAUDE.md, AGENTS.md, Project_Architecture_Document.md, ADRs                                                   |
 | 13 — Handoff                      | ✅ Complete | Smoke test script, production Dockerfile + docker-compose, audit report + remediation                                  |
 | **14 — Code Audit & Remediation** | ✅ Complete | 3 Critical + 4 High + 8 Medium + 7 Low findings; 11 code-fixable items applied via TDD; 5 operational items documented |
+| **15 — Remediation v2**         | ✅ Complete | 1 Critical (CSP unsafe-eval — ACTUALLY applied) + 2 High (committed AUTH_SECRET, broken scripts) + 5 Medium (dev-mode, localhost URLs, Stripe webhook DB writes, Inngest Resend wiring, ratelimit env import); 24 new TDD tests (183 → 207) |
 
-**Overall:** 14 of 14 phases complete. **183 unit tests (16 files)** + 8 E2E spec files passing. **0 vulnerabilities.** Quality gate green: `pnpm typecheck && pnpm lint && pnpm test && pnpm audit` all pass clean.
+**Overall:** 15 of 15 phases complete. **207 unit tests (20 files)** + 9 E2E spec files passing. **0 vulnerabilities.** Quality gate green: `pnpm typecheck && pnpm lint && pnpm test && pnpm audit` all pass clean.
 
 ---
 
-## Outstanding Operational Items (Post-Remediation)
+## Outstanding Operational Items (Post-Remediation v2)
 
-The following items were identified in the code audit (see [`.audit-report.md`](.audit-report.md)) but require deployment environment access — they cannot be fixed in code:
+The following items were identified in the code audit (see `IRONFORGE_code_review_audit.md`) but require deployment environment access — they cannot be fixed in code:
 
 | #   | Item                             | Action Required                                                                                                                                                            | Impact if Unfixed                                                                                                      |
 | --- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | 1   | **Deploy with production build** | Use `docker compose -f docker-compose.prod.yml up -d` (NOT `pnpm dev`). The Dockerfile is correct; the deployment pipeline must use it.                                    | Site runs in dev mode (5-10× slower, source maps exposed, TTFB 350ms vs <100ms)                                        |
 | 2   | **Set `NEXT_PUBLIC_APP_URL`**    | Set to `https://your-domain.com` in the deployment environment.                                                                                                            | Sitemap + robots publish `localhost` URLs; Google indexes wrong URLs                                                   |
-| 3   | **Configure Stripe**             | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` + create 4 products/prices + update `MEMBERSHIP_TIERS`/`DROP_IN_PACK` in `data.ts`. | Checkout returns 503 NOT_CONFIGURED; memberships non-functional                                                        |
-| 4   | **Apply migration 0002**         | Run `pnpm drizzle:migrate` in the deployment environment.                                                                                                                  | `published`/`order` columns remain nullable at DB level (queries still work, but type safety not enforced at DB level) |
-| 5   | **Cloudflare robots.txt**        | Move `Disallow: /admin/` into the Cloudflare-managed block, or disable CF managed robots.                                                                                  | Some crawlers may ignore the app's `Disallow: /admin/` directive                                                       |
+| 3   | **Rotate committed AUTH_SECRET** | The old `AUTH_SECRET=EWPA1F2Hav59ph/HF5cijXxZ9HdiOZVHRaIjumKnzs0=` was committed to git history. Regenerate with `openssl rand -base64 32` and update in production.       | The old secret is publicly visible in git history. An attacker with repo access could forge JWT sessions.              |
+| 4   | **Configure Stripe**             | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` + create 4 products/prices + update `MEMBERSHIP_TIERS`/`DROP_IN_PACK` in `data.ts`. | Checkout returns 503 NOT_CONFIGURED; memberships non-functional. Webhook handlers are implemented (F-M3) but can't fire. |
+| 5   | **Apply migration 0002**         | Run `pnpm drizzle:migrate` in the deployment environment.                                                                                                                  | `published`/`order` columns remain nullable at DB level (queries still work, but type safety not enforced at DB level) |
+| 6   | **Configure Resend**             | Set `RESEND_API_KEY` in deployment env. Optionally set `RESEND_FROM_EMAIL` (verified sender domain) + `COACH_NOTIFY_EMAIL` (coach team inbox).                              | Trial request emails are logged to console only; coaches don't receive notifications, members don't receive confirmations. |
+| 7   | **Cloudflare robots.txt**        | Move `Disallow: /admin/` into the Cloudflare-managed block, or disable CF managed robots.                                                                                  | Some crawlers may ignore the app's `Disallow: /admin/` directive                                                       |
 
 ---
 
-## Lessons Learned (Post-Audit)
+## Lessons Learned (Post-Audit + Remediation v2)
 
 1. **`.default()` without `.notNull()` creates `T | null`** in Drizzle inference — forced 20 `as unknown as` casts. Always pair `.default(X)` with `.notNull()` for semantically non-nullable columns.
 2. **Casts hide bugs.** `as unknown as` satisfied ESLint's `no-explicit-any` but defeated TypeScript runtime safety — it hid BOTH the `published` mismatch AND the `goal: string vs enum` mismatch. Fix the schema, don't cast.
-3. **CSP `'unsafe-eval'` is NOT required for Next.js 16 production.** The inline comment claimed it was "intentionally absent" but the actual string included it. Grep the config, don't trust the comment.
+3. **CSP `'unsafe-eval'` is NOT required for Next.js 16 production.** The inline comment claimed it was "intentionally absent" but the actual CSP string included it. **Remediation v2: the fix was claimed in 5 docs but never actually applied — now ACTUALLY applied with a `csp-policy.test.ts` regression test.** Lesson: grep the config string, don't trust the comment OR the doc.
 4. **`NEXT_PUBLIC_APP_URL` must be set in production.** Without it, `sitemap.xml` and `robots.txt` publish `localhost` URLs (verified on the live site).
 5. **`setProgress` every 100ms = 10 re-renders/sec.** Drive progress bars with CSS `@keyframes` + `key={current}` to restart on change. Zero React re-renders.
 6. **TDD catches missing filters.** Existing query tests only tested the static-fallback path (DB throws). New `queries-published-filter.test.ts` mocks the DB to RETURN data — catches the missing `published: true` filter.
 7. **`@ts-expect-error` is a silent escape hatch.** Use `instanceof Readable` type narrowing instead. Never suppress type errors.
 8. **Substring matching for error routing is brittle.** Server actions return a `field` property (from Zod `issues[0].path[0]`); clients route via `result.field`.
-9. **`toLocaleString()` without explicit locale causes SSR hydration mismatch.** Server uses Node's default locale (en-US → `2,400`), client uses browser locale (e.g., de-DE → `2.400`). `suppressHydrationWarning` is an anti-pattern for text nodes — React will not patch the mismatch, leaving server text permanently in the DOM. Fix: use `toLocaleString('en-US')` for deterministic output.
+9. **`toLocaleString()` without explicit locale causes SSR hydration mismatch.** Server uses Node's default locale (en-US → `2,400`), client uses browser locale (e.g., de-DE → `2.400`). `suppressHydrationWarning` is an anti-pattern for text nodes. Fix: use `toLocaleString('en-US')`.
+10. **Documentation claims must be verified against code.** The H1 CSP fix was claimed as "applied" across 5 docs but was never actually applied to `next.config.ts:30` — the inline comment contradicted the code. Fix: removed `'unsafe-eval'`, added `csp-policy.test.ts` regression test (F-D1 fix).
+11. **Stripe SDK v22 uses snake_case, NOT camelCase.** The webhook route's header comment claimed camelCase (`currentPeriodEnd`, `cancelAtPeriodEnd`) — this was FALSE. The SDK uses snake_case (`cancel_at_period_end`), and `current_period_end` lives on `SubscriptionItem` (access via `sub.items.data[0]`), not `Subscription`. Fix: removed the `as unknown as` cast, accessed fields directly, corrected the header comment (F-M3 fix).
+12. **All infrastructure clients must use the same graceful-degradation pattern.** `ratelimit.ts` was the ONLY infra client importing `env` from `@/lib/env` — all others use `process.env` directly. The `env` module throws at runtime when `.env.local` is missing. Additionally, `hasRealRedis()` only checked for `'placeholder'` but not `'xxx'` (the `.env.local` dev placeholder). Fix: use `process.env` + check for both patterns (F-M5 fix).
+13. **`.env.local` is the Next.js runtime filename — never use it as a template.** The project committed `.env.local` (with a real `AUTH_SECRET` + dev DB password) to git. Fix: created `.env.example` with placeholder values, untracked `.env.local` from git. **Outstanding:** the committed `AUTH_SECRET` must be rotated in production (it remains in git history) (F-S1 fix).
+14. **Don't document commands that don't work.** `pnpm test:e2e:live` was documented but `playwright-live.config.ts` matched a non-existent spec file. Similarly, `pnpm audit:security` and `pnpm audit:a11y` referenced non-existent scripts. Fix: deleted the broken config + removed the scripts from `package.json` + updated README (F-S2 fix).
+15. **Wire external services with graceful degradation.** The Inngest `trial-requested` function was stubbed with `console.log` — no real email was sent. Fix: installed `resend`, created `src/lib/email/resend.ts` (graceful-degradation client), wired the 2 email steps to call `resend.emails.send()` with `console.log` fallback (F-M4 fix).
 
 ---
 

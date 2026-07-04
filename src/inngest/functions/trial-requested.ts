@@ -122,7 +122,9 @@ Request ID: ${data.requestId}
 
     // Step 3: Schedule a 3-day follow-up check (future: step.sleep)
     await step.run('schedule-followup', async () => {
-      console.log(`[inngest:schedule-followup] Would check in 3 days on request ${data.requestId}`);
+      console.log(
+        `[inngest:schedule-followup] Would check in 3 days on request ${data.requestId}`,
+      );
       return { scheduled: true };
     });
 

@@ -37,7 +37,10 @@ export async function POST(request: Request) {
   const stripe = getStripe();
 
   if (!webhookSecret || !stripe) {
-    return NextResponse.json({ error: 'Stripe webhook not configured' }, { status: 503 });
+    return NextResponse.json(
+      { error: 'Stripe webhook not configured' },
+      { status: 503 },
+    );
   }
 
   // Get raw body + signature header
@@ -45,7 +48,10 @@ export async function POST(request: Request) {
   const signature = request.headers.get('stripe-signature');
 
   if (!signature) {
-    return NextResponse.json({ error: 'Missing stripe-signature header' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Missing stripe-signature header' },
+      { status: 400 },
+    );
   }
 
   // Verify signature + construct event
@@ -54,7 +60,10 @@ export async function POST(request: Request) {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     console.error('[stripe/webhook] Signature verification failed:', err);
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Invalid signature' },
+      { status: 400 },
+    );
   }
 
   // Handle the event
@@ -83,7 +92,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true });
   } catch (err) {
     console.error('[stripe/webhook] Handler error:', err);
-    return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Webhook handler failed' },
+      { status: 500 },
+    );
   }
 }
 
@@ -95,7 +107,9 @@ async function handleCheckoutCompleted(event: Stripe.Event): Promise<void> {
   const stripePriceId = (session.metadata?.priceId as string | undefined) ?? '';
   const customerEmail = session.customer_details?.email ?? null;
   const stripeCustomerId =
-    typeof session.customer === 'string' ? session.customer : (session.customer?.id ?? '');
+    typeof session.customer === 'string'
+      ? session.customer
+      : (session.customer?.id ?? '');
   const stripeSubscriptionId =
     typeof session.subscription === 'string'
       ? session.subscription
@@ -106,7 +120,9 @@ async function handleCheckoutCompleted(event: Stripe.Event): Promise<void> {
   );
 
   if (!customerEmail || !stripeSubscriptionId) {
-    console.warn('[stripe/webhook] Missing customerEmail or subscriptionId — skipping DB insert');
+    console.warn(
+      '[stripe/webhook] Missing customerEmail or subscriptionId — skipping DB insert',
+    );
     return;
   }
 
@@ -116,7 +132,11 @@ async function handleCheckoutCompleted(event: Stripe.Event): Promise<void> {
     const { eq } = await import('drizzle-orm');
 
     // Look up userId by email (checkout is anonymous — no clientReferenceId)
-    const [user] = await db.select().from(users).where(eq(users.email, customerEmail)).limit(1);
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, customerEmail))
+      .limit(1);
 
     if (!user) {
       console.warn(
@@ -140,9 +160,14 @@ async function handleCheckoutCompleted(event: Stripe.Event): Promise<void> {
       })
       .onConflictDoNothing({ target: subscriptions.stripeSubscriptionId });
 
-    console.log(`[stripe/webhook] Subscription recorded for user ${user.id}`);
+    console.log(
+      `[stripe/webhook] Subscription recorded for user ${user.id}`,
+    );
   } catch (err) {
-    console.error('[stripe/webhook] DB error on checkout.session.completed:', err);
+    console.error(
+      '[stripe/webhook] DB error on checkout.session.completed:',
+      err,
+    );
     throw err; // Return 500 so Stripe retries
   }
 }
@@ -154,7 +179,9 @@ async function handleSubscriptionUpdated(event: Stripe.Event): Promise<void> {
   const cancelAtEnd = sub.cancel_at_period_end;
   const periodEnd = sub.items?.data?.[0]?.current_period_end;
 
-  console.log(`[stripe/webhook] subscription.updated: Sub=${sub.id} Status=${sub.status}`);
+  console.log(
+    `[stripe/webhook] subscription.updated: Sub=${sub.id} Status=${sub.status}`,
+  );
 
   try {
     const { db } = await import('@/lib/db/client');
@@ -184,7 +211,10 @@ async function handleSubscriptionUpdated(event: Stripe.Event): Promise<void> {
       })
       .where(eq(subscriptions.stripeSubscriptionId, sub.id));
   } catch (err) {
-    console.error('[stripe/webhook] DB error on subscription.updated:', err);
+    console.error(
+      '[stripe/webhook] DB error on subscription.updated:',
+      err,
+    );
     throw err;
   }
 }
@@ -206,7 +236,10 @@ async function handleSubscriptionDeleted(event: Stripe.Event): Promise<void> {
       })
       .where(eq(subscriptions.stripeSubscriptionId, sub.id));
   } catch (err) {
-    console.error('[stripe/webhook] DB error on subscription.deleted:', err);
+    console.error(
+      '[stripe/webhook] DB error on subscription.deleted:',
+      err,
+    );
     throw err;
   }
 }

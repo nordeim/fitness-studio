@@ -162,7 +162,9 @@ describe('Stripe webhook POST (F-M3)', () => {
 
   it('handles checkout.session.completed — inserts subscription when user found', async () => {
     // Mock user lookup to return a user
-    mockLimit.mockResolvedValueOnce([{ id: 'user-uuid-1', email: 'member@example.com' }]);
+    mockLimit.mockResolvedValueOnce([
+      { id: 'user-uuid-1', email: 'member@example.com' },
+    ]);
     mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent());
 
     const res = await POST(makeRequest('body'));
@@ -199,7 +201,9 @@ describe('Stripe webhook POST (F-M3)', () => {
     const res = await POST(makeRequest('body'));
     expect(res.status).toBe(200);
     expect(mockInsert).not.toHaveBeenCalled();
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('No user found for email'));
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('No user found for email'),
+    );
     consoleSpy.mockRestore();
   });
 
@@ -223,11 +227,7 @@ describe('Stripe webhook POST (F-M3)', () => {
     // Verify DB update was called
     expect(mockUpdate).toHaveBeenCalledTimes(1);
     expect(mockSet).toHaveBeenCalledTimes(1);
-    const updatePayload = firstCallArg<{
-      status: string;
-      cancelAtPeriodEnd: boolean;
-      currentPeriodEnd: unknown;
-    }>(mockSet);
+    const updatePayload = firstCallArg<{ status: string; cancelAtPeriodEnd: boolean; currentPeriodEnd: unknown }>(mockSet);
     expect(updatePayload.status).toBe('active');
     expect(updatePayload.cancelAtPeriodEnd).toBe(false);
     // currentPeriodEnd should be a Date derived from items.data[0].current_period_end (1735689600s)

@@ -31,11 +31,7 @@ export async function POST(request: Request) {
   const { success: rateLimitOk } = await rateLimit(ip, 'checkout', 10, '1 m');
   if (!rateLimitOk) {
     return NextResponse.json(
-      {
-        success: false,
-        code: 'RATE_LIMITED',
-        message: 'Too many requests. Please wait and try again.',
-      },
+      { success: false, code: 'RATE_LIMITED', message: 'Too many requests. Please wait and try again.' },
       { status: 429 },
     );
   }

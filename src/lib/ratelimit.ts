@@ -120,8 +120,11 @@ export async function rateLimit(
 }
 
 // Pre-configured limiters for common use cases
-export const rateLimitBooking = (ip: string) => rateLimit(ip, 'booking', 5, '1 m'); // 5 per minute
+export const rateLimitBooking = (ip: string) =>
+  rateLimit(ip, 'booking', 5, '1 m'); // 5 per minute
 
-export const rateLimitNewsletter = (ip: string) => rateLimit(ip, 'newsletter', 3, '1 m'); // 3 per minute
+export const rateLimitNewsletter = (ip: string) =>
+  rateLimit(ip, 'newsletter', 3, '1 m'); // 3 per minute
 
-export const rateLimitAuth = (ip: string) => rateLimit(ip, 'auth', 5, '10 m'); // 5 per 10 minutes
+export const rateLimitAuth = (ip: string) =>
+  rateLimit(ip, 'auth', 5, '10 m'); // 5 per 10 minutes

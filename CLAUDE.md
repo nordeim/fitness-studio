@@ -6,9 +6,9 @@ IMPORTANT: File is read fresh for every conversation. Be brief and practical.
 
 ## Core Identity & Purpose
 
-IRONFORGE is a production-grade marketing + booking + memberships + admin website for a high-end strength & conditioning studio. Built with Next.js 16, React 19, Tailwind CSS v4, Drizzle ORM, Auth.js v5, Inngest, Stripe, and Replicate. The project follows a 5-layer architecture with server-first rendering and graceful degradation when external services are not configured.
+IRONFORGE is a production-grade marketing + booking + memberships + admin website for a high-end strength & conditioning studio. Built with Next.js 16, React 19, Tailwind CSS v4, Drizzle ORM, Auth.js v5, Inngest, Stripe, Replicate, and Resend. The project follows a 5-layer architecture with server-first rendering and graceful degradation when external services are not configured.
 
-**Key technical decision:** All infrastructure clients (DB, Stripe, R2, Replicate, Inngest) use `process.env` directly with `null` fallbacks — NOT the Zod-validated `env` module — to avoid crashes in dev without `.env.local`.
+**Key technical decision:** All infrastructure clients (DB, Stripe, R2, Replicate, Inngest, Resend, Upstash) use `process.env` directly with `null` fallbacks — NOT the Zod-validated `env` module — to avoid crashes in dev without `.env.local`.
 
 ## Foundational Principles
 
@@ -110,7 +110,7 @@ pnpm db:reset            # Migrate + seed
 | `pnpm start`            | Start production server                              |
 | `pnpm typecheck`        | `tsc --noEmit`                                       |
 | `pnpm lint`             | ESLint flat config                                   |
-| `pnpm test`             | Vitest run (183 unit tests)                          |
+| `pnpm test`             | Vitest run (207 unit tests)                          |
 | `pnpm test:e2e`         | Playwright (requires dev server)                     |
 | `pnpm format`           | Prettier write                                       |
 | `pnpm drizzle:generate` | Generate migration from schema diff                  |
@@ -130,7 +130,7 @@ This is enforced by Husky `pre-push` hook + GitHub Actions CI.
 
 ### Test Pyramid
 
-- **Unit Tests (183):** Vitest + jsdom — brand tokens, hooks, schemas, queries, server actions
+- **Unit Tests (207):** Vitest + jsdom — brand tokens, hooks, schemas, queries, server actions, CSP policy, rate limiter, Stripe webhook, Inngest trial-requested
 - **E2E Tests (9 specs):** Playwright Chromium — hero, programs, coaches, stories, booking, memberships, auth, SEO, hydration-guard
 
 ### Test Commands
@@ -257,36 +257,42 @@ Layer 4  src/lib/                → Infrastructure: Drizzle, Auth, Inngest, R2,
 - **Runtime:** Validated by `src/lib/env.ts` (Zod schema, throws on missing)
 - **Build context:** Returns placeholders when `NEXT_PHASE=phase-production-build` or `NODE_ENV=test`
 - **Infrastructure clients:** Use `process.env` directly (NOT `env` module) to avoid crash in dev
-- See `.env.example` for the full list
+- **Template file:** `.env.example` — copy to `.env.local` and fill in real values
+- **NEVER commit `.env.local`** — `.gitignore` excludes `.env*` except `.env.example`
+- See `.env.example` for the full list (28 vars including `RESEND_FROM_EMAIL` + `COACH_NOTIFY_EMAIL`)
 
 ### Graceful Degradation Pattern
 
-All infrastructure clients follow this pattern:
+All infrastructure clients follow this pattern (verified across `lib/stripe.ts`, `lib/r2.ts`, `lib/ai/replicate.ts`, `lib/inngest/client.ts`, `lib/email/resend.ts`, `lib/ratelimit.ts`):
 
 ```typescript
 function getClient() {
   const key = process.env.KEY;
-  if (!key || key.includes('placeholder')) return null;
+  if (!key || key === 'placeholder' || key.startsWith('prefix_xxx')) return null;
   return new Client(key);
 }
-// Callers check for null and fall back to static data / placeholder
+// Callers check for null and fall back to static data / placeholder SVG / console.log
 ```
+
+**F-M5 lesson:** `hasRealRedis()` (and similar checks) must reject BOTH `'placeholder'` (build-context value) AND `'xxx'` (`.env.local` dev placeholder). The `stripe.ts` pattern is the canonical reference.
 
 ### Security Checklist
 
 - Rate limit: booking (5/min), checkout (10/min), auth (5/10min)
 - Honeypot on booking form (`company_website` field)
-- Stripe webhook signature verification
+- Stripe webhook signature verification + DB writes to `subscriptions` table (F-M3 fix)
 - SSRF allowlist on `downloadImage()` (replicate.delivery only)
 - Admin auth: edge proxy → layout session check → action role check
-- CSP: `default-src 'self'; script-src 'self' 'unsafe-inline'` (NO `'unsafe-eval'` — H1 fix). `'unsafe-inline'` is required for Next.js App Router inline runtime; future hardening: nonce-based CSP.
+- CSP: `default-src 'self'; script-src 'self' 'unsafe-inline'` (NO `'unsafe-eval'` — H1 fix, now ACTUALLY applied with regression test `csp-policy.test.ts`). `'unsafe-inline'` is required for Next.js App Router inline runtime; future hardening: nonce-based CSP.
 - HSTS + X-Frame-Options (DENY) + nosniff + Referrer-Policy + Permissions-Policy
 - UUID validation on all server-action `id` params (M5 fix)
 - Server actions return typed `{ success, code, message, field? }` — `field` populated from Zod `issues[0].path[0]` for client-side error routing (M4 fix)
+- Email: Resend client (`lib/email/resend.ts`) sends real trial-request notifications + confirmations (F-M4 fix); falls back to `console.log` when not configured
+- `.env.local` untracked from git — `.env.example` is the template (F-S1 fix)
 
 ## Anti-Patterns to Avoid
 
-- **`process.env.*` direct access in app code:** Always import `env` from `@/lib/env` for app logic. Infrastructure clients (`lib/stripe.ts`, `lib/r2.ts`, etc.) are the exception — they use `process.env` directly for graceful degradation.
+- **`process.env.*` direct access in app code:** Always import `env` from `@/lib/env` for app logic. Infrastructure clients (`lib/stripe.ts`, `lib/r2.ts`, `lib/email/resend.ts`, etc.) are the exception — they use `process.env` directly for graceful degradation.
 - **`DrizzleAdapter` with JWT strategy:** Don't use it — JWT doesn't need DB sessions, and the adapter's type expectations conflict with our schema.
 - **`middleware.ts` filename:** Next.js 16 renamed to `proxy.ts`. Export `proxy` not `middleware`.
 - **`{ errorMap }` in Zod 4:** Use `{ message }` instead.
@@ -294,20 +300,25 @@ function getClient() {
 - **`tailwind.config.js`:** Forbidden in v4. All tokens in `globals.css` `@theme` block.
 - **Client component importing `lib/storage/r2.ts`:** Will crash — `r2.ts` imports env validation which fails in browser. Server Component signs URL, passes as prop.
 - **`setState` in effect body:** React 19 `react-hooks/set-state-in-effect` rule. Derive state instead, or use `setState` only in event callbacks (setInterval, pointer events).
-- **`as unknown as` casts:** Banned in queries (H4 fix). The Drizzle schema's `published`/`order` columns are `.notNull()`, so inferred types match Zod schemas. If a type mismatch appears, fix the schema (add `.notNull()` or change column type) — don't cast.
+- **`as unknown as` casts:** Banned in queries (H4 fix). The Drizzle schema's `published`/`order` columns are `.notNull()`, so inferred types match Zod schemas. If a type mismatch appears, fix the schema — don't cast.
 - **`@ts-expect-error` / `@ts-ignore` / `@ts-nocheck`:** Banned (M7 fix). Use proper type narrowing (`instanceof`, type guards) or fix the upstream type declaration.
 - **Substring matching for error routing:** Banned in forms (M4 fix). Server actions return a `field` property; clients route errors via `result.field`, not `message.includes('email')`.
-- **CSP with `'unsafe-eval'`:** Banned (H1 fix). Next.js 16 production builds do not require `'unsafe-eval'`. Only `'unsafe-inline'` is allowed (for script-src + style-src).
+- **CSP with `'unsafe-eval'`:** Banned (H1 fix — now ACTUALLY applied). Next.js 16 production builds do not require `'unsafe-eval'`. Only `'unsafe-inline'` is allowed (for script-src + style-src). Regression test: `csp-policy.test.ts`.
 - **Hardcoded `localhost` in metadata:** Use `process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'` for `metadataBase`, OG `url`, sitemap, and robots (M1 fix).
 - **`setProgress` in `setInterval` for progress bars:** Causes 10 re-renders/sec (M8 fix). Use CSS `@keyframes` animation + `key={current}` to restart on frame change.
 - **Public queries without `published: true` filter:** Banned (H2 fix). Unpublished records would leak via the public API. Always `.where(eq(*.published, true))`.
 - **Server actions without UUID validation on `id`:** Banned (M5 fix). Always `z.string().uuid().safeParse(id)` before any DB call.
 - **`toLocaleString()` without explicit locale in Client Components:** Banned. SSR uses Node's default locale (en-US), client uses browser locale — causes hydration mismatch. Use `toLocaleString('en-US')` for deterministic output.
 - **`suppressHydrationWarning` on text nodes:** Anti-pattern. React docs explicitly state it will "not attempt to patch mismatched text content" — leaving server-rendered text permanently in the DOM. Fix the source of the mismatch instead.
+- **Importing `env` from `@/lib/env` in infrastructure clients:** Banned (F-M5 fix). All `src/lib/` infra clients must use `process.env` directly with `null` fallback. The `env` module throws at runtime when `.env.local` is missing.
+- **Incomplete placeholder checks:** `hasRealRedis()` and similar must reject BOTH `'placeholder'` AND `'xxx'` patterns (F-M5 fix). See `stripe.ts` for the canonical pattern.
+- **`as unknown as` casts in API routes:** Banned (F-M3/L5 fix). Access Stripe SDK fields directly — the SDK uses snake_case (`sub.cancel_at_period_end`, `sub.items.data[0].current_period_end`), NOT camelCase as a stale comment once claimed.
+- **Committing `.env.local` to git:** Banned (F-S1 fix). Use `.env.example` as the template. `.env.local` is the Next.js runtime filename and must never be tracked.
+- **Documenting non-existent commands:** Banned (F-S2 fix). If `pnpm test:e2e:live` or `pnpm audit:security` is documented, the config files + scripts must exist. Remove or implement — don't leave broken references.
 
-## Lessons Learned (Post-Audit Remediation 2026-07-03)
+## Lessons Learned (Post-Audit Remediation 2026-07-03 + Remediation v2 2026-07-04)
 
-A full code review + audit (see `.audit-report.md`) surfaced 3 Critical, 4 High, 8 Medium, and 7 Low findings. The code-fixable items were applied via TDD (RED → GREEN → REFACTOR). Key lessons:
+A full code review + audit (see `IRONFORGE_code_review_audit.md`) surfaced 3 Critical, 4 High, 8 Medium, and 7 Low findings. The code-fixable items were applied via TDD (RED → GREEN → REFACTOR). A second remediation pass (v2) addressed 1 Critical + 2 High + 5 Medium findings. Key lessons:
 
 ### Architecture / Type Safety
 
@@ -339,6 +350,22 @@ A full code review + audit (see `.audit-report.md`) surfaced 3 Critical, 4 High,
 
 10. **Mock the chainable builder, not just the throw.** The existing mock pattern was `vi.mock('@/lib/db/client', () => { throw new Error('DB unavailable') })`. The new pattern returns a chainable mock: `{ select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ orderBy: vi.fn().mockResolvedValue(rows) })) })) })) }`. This lets you test the DB-available path without a real database.
 
+11. **`vi.fn()` mock calls + `noUncheckedIndexedAccess`.** When extracting arguments from `vi.fn().mock.calls[0]`, TypeScript's `noUncheckedIndexedAccess` flags the result as possibly `undefined`. Use a helper: `function firstCallArg<T>(fn): T { const calls = fn.mock.calls; if (!calls.length) throw new Error('No calls'); return calls[0]![0] as T; }` — see `stripe-webhook.test.ts` for the pattern.
+
+### Remediation v2 (2026-07-04) — Documentation vs Implementation Drift
+
+12. **Documentation claims must be verified against code.** The H1 CSP `'unsafe-eval'` fix was claimed as "applied" across 5 separate documents (CLAUDE.md, AGENTS.md, README.md, SKILL.md, ADR-002) but was NEVER actually applied to `next.config.ts:30`. The inline comment on line 24 even said "'unsafe-eval' is intentionally absent" while line 30 explicitly included it. Lesson: grep the actual config string, don't trust the comment OR the doc. Fix: removed `'unsafe-eval'`, added `csp-policy.test.ts` regression test (6 tests).
+
+13. **Stripe SDK v22 uses snake_case, NOT camelCase.** The webhook route's header comment (lines 17-22) claimed "Stripe SDK v22+ uses camelCase (currentPeriodEnd, cancelAtPeriodEnd)." This was FALSE — verified against `node_modules/stripe/cjs/resources/Subscriptions.d.ts`. The SDK uses snake_case: `Subscription.cancel_at_period_end` (boolean), and `current_period_end` lives on `SubscriptionItem` (access via `sub.items.data[0]?.current_period_end`), NOT on `Subscription`. The existing `as unknown as Record<string, unknown>` cast was accessing a field that doesn't exist. Fix: removed the cast, accessed fields directly, corrected the header comment (F-M3 fix).
+
+14. **All infrastructure clients must use the same graceful-degradation pattern.** `ratelimit.ts` was the ONLY infra client importing `env` from `@/lib/env` — all others (`stripe.ts`, `r2.ts`, `replicate.ts`, `inngest/client.ts`, `email/resend.ts`) use `process.env` directly. The `env` module throws at runtime when `.env.local` is missing, which would crash any route importing the ratelimit module. Additionally, `hasRealRedis()` only checked for `'placeholder'` (build-context value) but NOT `'xxx'` (`.env.local` dev placeholder) — meaning dev envs would try to connect to `https://xxx.upstash.io`, fail, and log an error on every rate-limited request. Fix: use `process.env` + check for both placeholder patterns (F-M5 fix).
+
+15. **`.env.local` is the Next.js runtime filename — never use it as a template.** The project committed `.env.local` (with a real `AUTH_SECRET` + dev DB password) to git because it was used as the template file. The correct template filename is `.env.example`. The `.env.local` filename is required by 4 `package.json` scripts (`drizzle:generate`, `drizzle:migrate`, `drizzle:studio`, `db:seed` via `dotenv -e .env.local`) — it cannot be renamed. Fix: created `.env.example` with placeholder values, `git rm --cached .env.local .env.docker`, deleted the duplicate `.env.docker` (F-S1 fix). **Outstanding:** the committed `AUTH_SECRET` must be rotated in production (it remains in git history).
+
+16. **Don't document commands that don't work.** `pnpm test:e2e:live` was documented in README.md but `playwright-live.config.ts` matched a non-existent `live-site.spec.ts`. Similarly, `pnpm audit:security` and `pnpm audit:a11y` scripts referenced non-existent files in `scripts/`. Running these commands produced "No tests found" or file-not-found errors. Fix: deleted the broken config + removed the 3 script entries from `package.json` + updated README (F-S2 fix). Rule: if a command is documented, it must work — otherwise remove it.
+
+17. **Wire external services with graceful degradation — never crash when they're not configured.** The Inngest `trial-requested` function was stubbed with `console.log` for all 3 steps — no real email was sent to coaches or members. Fix: installed `resend` package, created `src/lib/email/resend.ts` (graceful-degradation client matching the `stripe.ts` pattern), wired the 2 email steps to call `resend.emails.send()` with `console.log` fallback when `RESEND_API_KEY` is not configured. Added `RESEND_FROM_EMAIL` + `COACH_NOTIFY_EMAIL` env vars (F-M4 fix).
+
 ## Outstanding Operational Items (Require Deployment Env Access)
 
 These items were identified in the audit but cannot be fixed in code — they require changes to the deployment environment or external services:
@@ -347,9 +374,11 @@ These items were identified in the audit but cannot be fixed in code — they re
 | --- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | **Deploy with production build** (C1) | Use `docker compose -f docker-compose.prod.yml up -d` OR equivalent. The Dockerfile is correct (`pnpm build` → `pnpm start`); the deployment pipeline must use it. The new `/api/health` route makes the Dockerfile HEALTHCHECK functional.  | Site runs in dev mode (5-10× slower, source maps exposed, React DevTools prompt visible, TTFB 350ms vs <100ms)                                                  |
 | 2   | **Set `NEXT_PUBLIC_APP_URL`** (C2)    | Set `NEXT_PUBLIC_APP_URL=https://ironforge.jesspete.shop` in the deployment environment.                                                                                                                                                     | Sitemap + robots publish `localhost` URLs; Google indexes wrong URLs; OG metadata points to localhost                                                           |
-| 3   | **Configure Stripe** (H3)             | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`. Create 4 Stripe products/prices and update `MEMBERSHIP_TIERS[*].stripePriceId` + `DROP_IN_PACK.stripePriceId` in `src/features/memberships/data.ts`. | Checkout returns 503 NOT_CONFIGURED; memberships section non-functional                                                                                         |
-| 4   | **Apply migration 0002**              | Run `pnpm drizzle:migrate` in the deployment environment.                                                                                                                                                                                    | `published` and `order` columns remain nullable in prod DB; queries still work (Drizzle sends the WHERE clause) but type safety is not enforced at the DB level |
-| 5   | **Cloudflare robots.txt** (M6)        | Move `Disallow: /admin/` directives into the Cloudflare-managed robots block, OR disable Cloudflare managed robots, OR use a `User-agent: Googlebot` block for the disallows.                                                                | Different crawlers handle multiple `User-agent: *` blocks differently; the app's `Disallow: /admin/` MAY be ignored by some crawlers                            |
+| 3   | **Rotate committed AUTH_SECRET** (F-S1) | The `AUTH_SECRET=EWPA1F2Hav59ph/HF5cijXxZ9HdiOZVHRaIjumKnzs0=` was committed to git history. It has been untracked from the working tree, but remains in git history. Regenerate with `openssl rand -base64 32` and update in production. | The old secret is publicly visible in git history. An attacker with repo access could forge JWT sessions.                                                       |
+| 4   | **Configure Stripe** (H3)             | Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`. Create 4 Stripe products/prices and update `MEMBERSHIP_TIERS[*].stripePriceId` + `DROP_IN_PACK.stripePriceId` in `src/features/memberships/data.ts`. | Checkout returns 503 NOT_CONFIGURED; memberships section non-functional. Webhook handlers are implemented (F-M3) but can't fire without Stripe env vars.       |
+| 5   | **Apply migration 0002**              | Run `pnpm drizzle:migrate` in the deployment environment.                                                                                                                                                                                    | `published` and `order` columns remain nullable in prod DB; queries still work (Drizzle sends the WHERE clause) but type safety is not enforced at the DB level |
+| 6   | **Configure Resend** (F-M4)           | Set `RESEND_API_KEY` in the deployment env. Optionally set `RESEND_FROM_EMAIL` (verified sender domain) and `COACH_NOTIFY_EMAIL` (coach team inbox).                                                                                         | Trial request emails are logged to console only; coaches don't receive notifications, members don't receive confirmations.                                      |
+| 7   | **Cloudflare robots.txt** (M6)        | Move `Disallow: /admin/` directives into the Cloudflare-managed robots block, OR disable Cloudflare managed robots, OR use a `User-agent: Googlebot` block for the disallows.                                                                | Different crawlers handle multiple `User-agent: *` blocks differently; the app's `Disallow: /admin/` MAY be ignored by some crawlers                            |
 
 ## Troubleshooting
 
