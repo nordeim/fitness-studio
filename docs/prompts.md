@@ -2,6 +2,11 @@ have you actually read the content of the relevant skills included in the 'git c
 
 ---
 
+Awesome meticulous job so far. Please keep up the good work. Now, please meticulously validate the critical and high to medium severity gaps and bugs identified in your code review against the codebase to identify the root causes and the optimal fixes. then meticulously plan to create a comprehensive remediation plan with a detailed ToDo list to apply the optimal fix. Review and validate the remediation plan against the codebase to ensure alignment before proceeding to execute it meticulously. Remember to use TDD approach to make code changes.
+First convert your audit report `/home/z/my-project/download/IRONFORGE_audit_report_v2.pdf ` into an agent-friendly markdown file.
+
+---
+
 please meticulously plan to update @fitness-studio_SKILL.md with medium and minor gaps/issues (leave out the critical finding about `next.config.ts`). first meticulously plan to re-evaluate and re-validate the identified misalignment issues against the codebase to identify the root causes and the optimal fixes (either with the code or the documentation), then meticulously plan to create a remediation plan with a detailed ToDo list to apply the validated optimal fixes for the code or the SKILL.md file. refer to skill 'to-distill-project-into-skill' on the corrent structure and methodology for the project skill distillation.
 
 ---
